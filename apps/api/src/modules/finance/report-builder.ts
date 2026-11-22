@@ -27,12 +27,14 @@ const fmt = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2 })
  * конец месяца, долг по видам начислений, сумма проведённых операций по кодам строки или сумма
  * других строк. Поэтому смена формы — данные, а цифры совпадают с дашбордом по построению.
  */
-export async function buildReport(tx: Tx, houseId: string, period: string, schema: TemplateSchema, categories: Map<string, BudgetCategory>): Promise<BuiltReport> {
+export async function buildReport(tx: Tx, houseId: string, period: string, schema: TemplateSchema, categories: Map<string, BudgetCategory>, from = period): Promise<BuiltReport> {
+  // from — первый месяц диапазона: годовой отчёт считает обороты за 12 месяцев, остатки и долги — на конец последнего
   const end = dueDateOf(period)
+  const periods = from === period ? period : { gte: from, lte: period }
   const house = await tx.house.findFirstOrThrow({ where: { id: houseId }, include: { organization: true } })
   const accounts = await tx.financeAccount.findMany()
   const moves = await tx.transaction.groupBy({ by: ['accountId', 'direction'], where: { status: 'CONFIRMED', occurredOn: { lte: end } }, _sum: { amount: true } })
-  const byCode = await tx.transaction.groupBy({ by: ['categoryCode'], where: { status: 'CONFIRMED', period }, _sum: { amount: true } })
+  const byCode = await tx.transaction.groupBy({ by: ['categoryCode'], where: { status: 'CONFIRMED', period: periods }, _sum: { amount: true } })
   const debts = await tx.charge.findMany({ where: { period: { lte: period }, status: { not: 'CANCELLED' } }, select: { type: true, amount: true, paidAmount: true } })
 
   const values = new Map<string, number>()
@@ -52,7 +54,7 @@ export async function buildReport(tx: Tx, houseId: string, period: string, schem
       v = debts.filter((c) => src.charge_types.includes(c.type)).reduce((s, c) => s + num(c.amount) - num(c.paidAmount), 0)
     } else if (src?.kind === 'codes') {
       v = byCode.filter((r) => r.categoryCode === src.prefix || r.categoryCode.startsWith(`${src.prefix}.`)).reduce((s, r) => s + num(r._sum.amount), 0)
-      if (src.detail === 'payees') lines.set(code, await payees(tx, period, src.prefix, categories))
+      if (src.detail === 'payees') lines.set(code, await payees(tx, periods, src.prefix, categories))
     } else if (src?.kind === 'sum') {
       for (const c of src.of) v += await value(c)
     }
@@ -74,17 +76,17 @@ export async function buildReport(tx: Tx, houseId: string, period: string, schem
       header: {
         address: house.address, management_form: MANAGEMENT[house.organization.managementForm] ?? house.organization.managementForm,
         organization: house.organization.name, bin: house.organization.bin, legal_address: house.organization.legalAddress,
-        period_from: `${period}-01`, period_to: dateStr(end), banks: { CURRENT: bank('CURRENT'), SAVINGS: bank('SAVINGS') },
+        period_from: `${from}-01`, period_to: dateStr(end), banks: { CURRENT: bank('CURRENT'), SAVINGS: bank('SAVINGS') },
       },
       rows,
     },
-    issues: await completeness(tx, period),
-    work: await work(tx, period, end),
+    issues: from === period ? await completeness(tx, period) : [],
+    work: await work(tx, from, end),
   }
 }
 
 /** 7.2.1: форма печатает исполнителя и вид услуги по каждой паре */
-async function payees(tx: Tx, period: string, prefix: string, categories: Map<string, BudgetCategory>): Promise<NonNullable<ReportRow['lines']>> {
+async function payees(tx: Tx, period: string | { gte: string; lte: string }, prefix: string, categories: Map<string, BudgetCategory>): Promise<NonNullable<ReportRow['lines']>> {
   const items = await tx.transaction.findMany({
     where: { status: 'CONFIRMED', period, categoryCode: { startsWith: `${prefix}.` } },
     select: { categoryCode: true, amount: true, counterparty: true, contractor: { select: { name: true } } },

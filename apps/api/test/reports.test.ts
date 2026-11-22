@@ -1,4 +1,6 @@
 import request from 'supertest'
+import ExcelJS from 'exceljs'
+import { pdfText } from '../src/integrations/ai/pdf-text'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { CryptoService } from '../src/infra/crypto.service'
 import { ReportsScheduler } from '../src/modules/finance/reports.scheduler'
@@ -187,5 +189,71 @@ describe('monthly report', () => {
     expect((await scheduler.run(at(18))).reminded).toBe(1)
     expect((await scheduler.run(at(18))).reminded).toBe(0)
     expect((await scheduler.run(at(19))).reminded).toBe(1)
+  })
+})
+
+const binary = (req: request.Test) => req.buffer(true).parse((res, cb) => {
+  const chunks: Buffer[] = []
+  res.on('data', (c: Buffer) => chunks.push(c))
+  res.on('end', () => cb(null, Buffer.concat(chunks)))
+})
+
+async function sheetText(body: Buffer): Promise<string> {
+  const wb = new ExcelJS.Workbook()
+  await wb.xlsx.load(body as unknown as ArrayBuffer)
+  const out: string[] = []
+  wb.eachSheet((ws) => ws.eachRow((row) => out.push((row.values as unknown[]).filter((v) => v !== null && v !== undefined).map(String).join(' | '))))
+  return out.join('\n')
+}
+
+describe('documents', () => {
+  it('prints the monthly report to PDF and Excel; residents get it only when published', async () => {
+    const s = await setup(false)
+    const id = (await generate(s)).body.id as string
+    const pdf = await binary(s.chair.get(`${s.base}/reports/${id}/pdf`))
+    expect(pdf.status).toBe(200)
+    expect(pdf.headers['content-type']).toBe('application/pdf')
+    const text = await pdfText(pdf.body as Buffer, 100_000)
+    expect(text).toContain('Отчёт об управлении объектом кондоминиума')
+    expect(text).toContain('ТОО «Лифт-Сервис»')
+    expect(text).toContain('85 000,00')
+    expect(text).toContain('Замена лампы в подъезде')
+    expect(text).toContain('Черновик')
+
+    const xlsx = await binary(s.chair.get(`${s.base}/reports/${id}/xlsx`))
+    expect(xlsx.headers['content-type']).toContain('spreadsheetml')
+    const sheet = await sheetText(xlsx.body as Buffer)
+    expect(sheet).toContain('7.2.1')
+    expect(sheet).toContain('85000')
+
+    expect((await binary(s.resident.get(`${s.base}/reports/${id}/pdf`))).status).toBe(404)
+  })
+
+  it('builds the annual report over the months of the year with year-end balances', async () => {
+    const s = await setup(false)
+    const year = Number(P().slice(0, 4))
+    const annual = await s.chair.get(`${s.base}/annual-reports/${year}`)
+    expect(annual.status).toBe(200)
+    expect(annual.body.header.period_from).toBe(`${year}-01-01`)
+    const row = (code: string) => annual.body.rows.find((r: { code: string }) => r.code === code)
+    expect(row('7.2.1').amount).toBe(85000)
+    expect(row('7.2.1').lines[0]).toMatchObject({ payee: 'ТОО «Лифт-Сервис»', amount: 85000 })
+    const pdf = await binary(s.chair.get(`${s.base}/annual-reports/${year}/pdf`))
+    expect(await pdfText(pdf.body as Buffer, 100_000)).toContain(`за ${year} год`)
+    expect((await s.chair.get(`${s.base}/annual-reports/1999`)).status).toBe(422)
+    expect((await s.resident.get(`${s.base}/annual-reports/${year}`)).status).toBe(403)
+  })
+
+  it('exports the journal and debtors to Excel for the board only', async () => {
+    const s = await setup(false)
+    const journal = await binary(s.chair.get(`${s.base}/exports/transactions?from=${P()}&to=${P()}`))
+    expect(journal.status).toBe(200)
+    const text = await sheetText(journal.body as Buffer)
+    expect(text).toContain('Обслуживание лифтов')
+    expect(text).toContain('Итого проведено')
+    const debtors = await binary(s.chair.get(`${s.base}/exports/debtors`))
+    expect(debtors.status).toBe(200)
+    expect((await s.resident.get(`${s.base}/exports/transactions?from=${P()}&to=${P()}`)).status).toBe(403)
+    expect((await s.chair.get(`${s.base}/exports/transactions?from=2026-05&to=2026-01`)).status).toBe(422)
   })
 })

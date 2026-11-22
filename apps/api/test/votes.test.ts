@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client'
 import request from 'supertest'
+import { pdfText } from '../src/integrations/ai/pdf-text'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { CryptoService } from '../src/infra/crypto.service'
 import { VotesScheduler } from '../src/modules/votes/votes.scheduler'
@@ -341,6 +342,30 @@ describe('protocol', () => {
     const seen = await s.big.agent.get(`${s.base}/votes/${v.id}/protocol`)
     // 120 «за» из 180 м² — ровно 2/3: порог взят
     expect(seen.body).toMatchObject({ status: 'PUBLISHED', content: { held: true, results: [{ adopted: true }] } })
+  })
+
+  it('prints as a PDF with results, participants and signatures — residents only once published', async () => {
+    const s = await setup()
+    const { v, protocol } = await closed(s)
+    const pdfOf = (agent: Agent) => agent.get(`${s.base}/votes/${v.id}/protocol/pdf`).buffer(true).parse((res, cb) => {
+      const chunks: Buffer[] = []
+      res.on('data', (c: Buffer) => chunks.push(c))
+      res.on('end', () => cb(null, Buffer.concat(chunks)))
+    })
+    expect((await pdfOf(s.big.agent)).status).toBe(404)
+    await signProtocol(s, s.second.agent, protocol.id, s.second)
+    await signProtocol(s, s.chair, protocol.id, s.chairman)
+    await s.chair.post(`${s.base}/protocols/${protocol.id}/publish`).set('x-step-up-token', s.up).expect(200)
+
+    const res = await pdfOf(s.big.agent)
+    expect(res.status).toBe(200)
+    expect(res.headers['content-type']).toBe('application/pdf')
+    expect(res.headers['content-disposition']).toContain("filename*=UTF-8''")
+    const text = await pdfText(res.body as Buffer, 50_000)
+    expect(text).toContain('Протокол №1')
+    expect(text).toContain('Решение принято')
+    expect(text).toContain('Омаров Ерлан Болатович')
+    expect(text).toContain(protocol.content_hash.slice(0, 16))
   })
 
   it('rejects a protocol signature made with another person’s key', async () => {

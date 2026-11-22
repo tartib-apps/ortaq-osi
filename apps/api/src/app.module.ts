@@ -87,6 +87,8 @@ import { VotesController } from './modules/votes/votes.controller'
 import { VotesScheduler } from './modules/votes/votes.scheduler'
 import { VotesService } from './modules/votes/votes.service'
 import { AiController } from './modules/ai/ai.controller'
+import { DocumentsController } from './modules/documents/documents.controller'
+import { DocumentsService } from './modules/documents/documents.service'
 import { LegalService } from './modules/ai/legal.service'
 import { ProposalsService } from './modules/ai/proposals.service'
 import { SummariesScheduler, SummariesService } from './modules/ai/summaries.service'
@@ -123,7 +125,7 @@ function storageProviderFactory(): StorageProvider {
     AuthController, AdminController, HousesController, MembershipsController, VerificationController, OwnershipsController,
     UnitsController, RegistryController, MembersController, StaffController,
     AnnouncementsController, NotificationsController, FilesController, RequestsController, TasksController, RecurringController,
-    BudgetCategoriesController, FinanceController, ChargesController, PaymentsController, OverviewController, ReportsController, VotesController, AiController,
+    BudgetCategoriesController, FinanceController, ChargesController, PaymentsController, OverviewController, ReportsController, VotesController, AiController, DocumentsController,
     ...(devStandIns ? [DevEgovController] : []),
   ],
   providers: [
@@ -135,7 +137,7 @@ function storageProviderFactory(): StorageProvider {
     FilesService, DevStorageBootstrap, AiService, RequestsService, RequestActionsService, StagesService, TasksService, RecurringService, RecurringScheduler,
     CategoriesService, AccountsService, TransactionsService, ChargesService, ChargesScheduler, ReceiptsService, PaymentsService, OverviewService, DebtorsService, ReportsService, ReportsScheduler,
     VotesService, BallotsService, ProtocolsService, VotesScheduler,
-    VoiceNotesService, ProposalsService, LegalService, SummariesService, SummariesScheduler,
+    VoiceNotesService, ProposalsService, LegalService, SummariesService, SummariesScheduler, DocumentsService,
     { provide: AI_PROVIDER, useFactory: aiProviderFactory },
     { provide: STORAGE_PROVIDER, useFactory: storageProviderFactory },
     // Антивирус для PDF. Эвристика — только в разработке и тестах; в продакшене до адаптера ClamAV PDF не принимается
