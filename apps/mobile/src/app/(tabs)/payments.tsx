@@ -8,6 +8,7 @@ import { CHARGE_STATUS, CHARGE_TYPE, money, month, PAYMENT_STATUS } from '../../
 import { useHouse } from '../../lib/session'
 import { color, radius, space, TAB_BAR_SPACE } from '../../theme'
 import { Card, Empty, ErrorNote, H2, Screen, Skeleton, T, Tag, Title } from '../../ui/kit'
+import { t } from '../../lib/i18n'
 
 type Mine = { charges: ChargeView[]; due: number; overdue: number }
 const OPEN = ['PENDING', 'PARTIALLY_PAID', 'OVERDUE']
@@ -53,18 +54,18 @@ export default function Payments() {
 
   return (
     <Screen bottomInset={TAB_BAR_SPACE} refreshing={mine.isRefetching} onRefresh={refresh}>
-      <Title sub={house?.display_name}>Оплата</Title>
+      <Title sub={house?.display_name}>{t('Оплата')}</Title>
       {mine.isPending && <Skeleton rows={2} height={88} />}
       <ErrorNote>{mine.error?.message}</ErrorNote>
       {mine.data && mine.data.charges.length > 0 && (
         <Card tone={mine.data.overdue > 0 ? 'warning' : mine.data.due > 0 ? 'surface' : 'brand'}>
-          <T size={13.5} tone="ink2">К оплате</T>
+          <T size={13.5} tone="ink2">{t('К оплате')}</T>
           <T size={30} weight="display">{money(mine.data.due)}</T>
-          <T size={13.5} tone="ink2">{mine.data.overdue > 0 ? `Из них просрочено ${money(mine.data.overdue)}` : mine.data.due > 0 ? 'Срок — до конца месяца' : 'Всё оплачено'}</T>
+          <T size={13.5} tone="ink2">{mine.data.overdue > 0 ? t('Из них просрочено {amount}', { amount: money(mine.data.overdue) }) : mine.data.due > 0 ? t('Срок — до конца месяца') : t('Всё оплачено')}</T>
         </Card>
       )}
       {mine.data && mine.data.charges.length === 0 && (
-        <Empty icon={Wallet} title="Начислений нет" text="Начисления появятся, когда председатель подтвердит вашу собственность и начислит месяц." />
+        <Empty icon={Wallet} title={t('Начислений нет')} text={t('Начисления появятся, когда председатель подтвердит вашу собственность и начислит месяц.')} />
       )}
       {open.map((c) => (
         <Row key={c.id} title={CHARGE_TYPE[c.type] ?? c.title} sub={`${month(c.period)} · №${c.unit.number}`} right={money(c.amount - c.paid_amount)}
@@ -72,28 +73,28 @@ export default function Payments() {
           onPress={() => router.push({ pathname: '/pay/[id]', params: { id: c.id } })} />
       ))}
 
-      {(payments.data?.length ?? 0) > 0 && <H2>Мои оплаты</H2>}
+      {(payments.data?.length ?? 0) > 0 && <H2>{t('Мои оплаты')}</H2>}
       {payments.data?.slice(0, 6).map((p) => (
-        <Row key={p.id} title={p.charge.title} sub={p.rejection_reason ? `Не принято: ${p.rejection_reason}` : `№${p.unit.number}`}
+        <Row key={p.id} title={p.charge.title} sub={p.rejection_reason ? t('Не принято: {reason}', { reason: p.rejection_reason }) : `№${p.unit.number}`}
           right={money(p.confirmed_amount ?? p.amount)} tag={{ text: PAYMENT_STATUS[p.status]!, tone: p.status === 'CONFIRMED' ? 'brand' : p.status === 'REJECTED' ? 'warn' : 'mute' }} />
       ))}
 
       {o && (
         <>
-          <H2>Деньги дома за {month(o.period)}</H2>
+          <H2>{t('Деньги дома за {month}', { month: month(o.period) })}</H2>
           <Card>
-            {o.accounts.map((a) => <Line key={a.type} label={a.type === 'CURRENT' ? 'Текущий счёт' : 'Накопления на капремонт'} value={money(a.balance)} />)}
-            <Line label="Поступило" value={money(o.income_total)} />
-            <Line label="Потрачено" value={money(o.expense_total)} />
-            {o.collection_rate !== null && <Line label="Собрано взносов" value={`${o.collection_rate}%`} />}
+            {o.accounts.map((a) => <Line key={a.type} label={a.type === 'CURRENT' ? t('Текущий счёт') : t('Накопления на капремонт')} value={money(a.balance)} />)}
+            <Line label={t('Поступило')} value={money(o.income_total)} />
+            <Line label={t('Потрачено')} value={money(o.expense_total)} />
+            {o.collection_rate !== null && <Line label={t('Собрано взносов')} value={`${o.collection_rate}%`} />}
             {o.expense_by_category.map((c) => <Line key={c.code} small label={`${c.code} ${c.name}`} value={money(c.amount)} />)}
           </Card>
         </>
       )}
 
-      {(reports.data?.length ?? 0) > 0 && <H2>Отчёты председателя</H2>}
+      {(reports.data?.length ?? 0) > 0 && <H2>{t('Отчёты председателя')}</H2>}
       {reports.data?.map((r) => (
-        <Row key={r.id} title={`Отчёт за ${month(r.period)}`} sub="Подписан ЭЦП и опубликован"
+        <Row key={r.id} title={t('Отчёт за {month}', { month: month(r.period) })} sub={t('Подписан ЭЦП и опубликован')}
           onPress={() => router.push({ pathname: '/report/[id]', params: { id: r.id } })} />
       ))}
     </Screen>

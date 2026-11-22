@@ -2,6 +2,7 @@ import { useId, type ReactNode } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { ArrowLeft, ChevronDown, CircleAlert, LoaderCircle, type LucideIcon } from 'lucide-react'
 import { cn, ease, spring } from '../lib/cn'
+import { t } from '../i18n'
 
 /*
  * UI-кит кабинета. Перенесён из прототипа (apps/prototype/src/components/web/ui.tsx):
@@ -197,7 +198,7 @@ export function Empty({ icon: Icon, title, text, action }: { icon: LucideIcon; t
 /** Скелет на время загрузки: форма та же, что у данных */
 export function Skeleton({ rows = 3, className }: { rows?: number; className?: string }) {
   return (
-    <div className={cn('flex flex-col gap-2', className)} aria-busy="true" aria-label="Загрузка">
+    <div className={cn('flex flex-col gap-2', className)} aria-busy="true" aria-label={t('Загрузка')}>
       {Array.from({ length: rows }, (_, i) => <div key={i} className="h-16 animate-pulse rounded-[18px] bg-surface-2" />)}
     </div>
   )

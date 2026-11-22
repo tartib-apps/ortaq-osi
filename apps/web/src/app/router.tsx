@@ -23,6 +23,7 @@ import { ReportDetail, ReportsPage } from '../chairman/finance/ReportsPage'
 import { VoteDetail } from '../chairman/votes/VoteDetail'
 import { VoteForm } from '../chairman/votes/VoteForm'
 import { VotesPage } from '../chairman/votes/VotesPage'
+import { AiPage } from '../chairman/ai/AiPage'
 import { DevEgov } from '../auth/DevEgov'
 import { AdminRoute, HomeRedirect, HouseRoute, NoAccess, Root } from './routes'
 
@@ -71,6 +72,7 @@ export const router = createBrowserRouter([
           { path: 'votes/new', element: <VoteForm /> },
           { path: 'votes/:voteId', element: <VoteDetail /> },
           { path: 'votes/:voteId/edit', element: <VoteForm /> },
+          { path: 'ai', element: <AiPage /> },
         ],
       },
       { path: '*', element: <Navigate to="/" replace /> },

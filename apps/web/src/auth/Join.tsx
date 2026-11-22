@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Smartphone, Link2Off } from 'lucide-react'
 import { api } from '../shared/api/client'
 import { Skeleton } from '../shared/ui/kit'
+import { t } from '../shared/i18n'
 import { AuthLayout, AuthTitle } from './AuthLayout'
 
 type Resolved = { valid: false } | { valid: true; house_display_name: string; target_role: 'RESIDENT' | 'WORKER' }
@@ -24,22 +25,22 @@ export function Join() {
       {q.data?.valid === false && (
         <>
           <span className="grid size-12 place-items-center rounded-full bg-surface text-ink-2"><Link2Off size={22} strokeWidth={2} /></span>
-          <AuthTitle title="Ссылка не работает" sub="Её отозвали, у неё истёк срок или закончились активации. Попросите председателя прислать новую." />
+          <AuthTitle title={t('Ссылка не работает')} sub={t('Её отозвали, у неё истёк срок или закончились активации. Попросите председателя прислать новую.')} />
         </>
       )}
       {q.data?.valid && (
         <>
-          <p className="text-[15px] text-ink-2">Приглашение в дом</p>
-          <AuthTitle title={q.data.house_display_name} sub={q.data.target_role === 'WORKER' ? 'Присоединиться как работник' : 'Присоединиться как жилец'} />
+          <p className="text-[15px] text-ink-2">{t('Приглашение в дом')}</p>
+          <AuthTitle title={q.data.house_display_name} sub={q.data.target_role === 'WORKER' ? t('Присоединиться как работник') : t('Присоединиться как жилец')} />
           <div className="flex items-start gap-3 rounded-[20px] bg-surface p-4">
             <span className="grid size-10 shrink-0 place-items-center rounded-full bg-brand-50 text-brand-700"><Smartphone size={19} strokeWidth={2} /></span>
             <p className="text-[14px] leading-relaxed text-ink-2">
-              Регистрация жильцов — по номеру телефона в мобильном приложении Ortaq. Оно появится в следующей версии; ссылка сохранит силу до своего срока.
+              {t('Регистрация жильцов — по номеру телефона в мобильном приложении Ortaq. Оно появится в следующей версии; ссылка сохранит силу до своего срока.')}
             </p>
           </div>
         </>
       )}
-      {q.isError && <AuthTitle title="Нет связи с сервером" sub="Проверьте интернет и обновите страницу." />}
+      {q.isError && <AuthTitle title={t('Нет связи с сервером')} sub={t('Проверьте интернет и обновите страницу.')} />}
     </AuthLayout>
   )
 }

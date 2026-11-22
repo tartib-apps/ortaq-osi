@@ -8,6 +8,8 @@ import { api } from '../lib/api'
 import { formatPhoneDigits } from '../lib/format'
 import { color, font, radius, space, TOUCH } from '../theme'
 import { Button, ErrorNote, IconBadge, noWebOutline, Screen, T, Title } from '../ui/kit'
+import { LangSwitch } from '../ui/lang'
+import { t } from '../lib/i18n'
 
 /** Вход и регистрация жильца одним экраном: номер → код из SMS (docs/04 §5.3) */
 export default function SignIn() {
@@ -22,16 +24,17 @@ export default function SignIn() {
     <Screen>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
         <IconBadge icon={Building2} tone="brand" />
-        <Text style={{ fontFamily: font.display, fontSize: 20, color: color.ink }}>Ortaq</Text>
+        <Text style={{ fontFamily: font.display, fontSize: 20, color: color.ink, flex: 1 }}>Ortaq</Text>
       </View>
+      <LangSwitch />
       <View style={{ flex: 1, justifyContent: 'center', gap: space.xl }}>
-        <Title sub="Пришлём код в SMS. Пароль не нужен">Вход по номеру телефона</Title>
+        <Title sub={t('Пришлём код в SMS. Пароль не нужен')}>{t('Вход по номеру телефона')}</Title>
         <View style={{ gap: 6 }}>
-          <Text style={styles.label}>Номер телефона</Text>
+          <Text style={styles.label}>{t('Номер телефона')}</Text>
           <View style={styles.phone}>
             <Text style={styles.prefix}>+7</Text>
             <TextInput
-              accessibilityLabel="Номер телефона"
+              accessibilityLabel={t('Номер телефона')}
               value={formatPhoneDigits(digits)}
               onChangeText={(v) => setDigits(v.replace(/\D/g, '').replace(/^[78](?=\d{10})/, '').slice(0, 10))}
               keyboardType="phone-pad"
@@ -44,11 +47,11 @@ export default function SignIn() {
               onSubmitEditing={() => phone && request.mutate()}
             />
           </View>
-          {digits.length === 10 && !phone && <T size={13} tone="danger">Нужен мобильный номер Казахстана</T>}
+          {digits.length === 10 && !phone && <T size={13} tone="danger">{t('Нужен мобильный номер Казахстана')}</T>}
         </View>
         <ErrorNote>{request.error?.message}</ErrorNote>
-        <Button icon={MessageSquareText} loading={request.isPending} disabled={!phone} onPress={() => request.mutate()}>Получить код</Button>
-        <T size={13} tone="ink2">Продолжая, вы соглашаетесь получать SMS с кодом входа. Номер виден только председателю вашего дома</T>
+        <Button icon={MessageSquareText} loading={request.isPending} disabled={!phone} onPress={() => request.mutate()}>{t('Получить код')}</Button>
+        <T size={13} tone="ink2">{t('Продолжая, вы соглашаетесь получать SMS с кодом входа. Номер виден только председателю вашего дома')}</T>
       </View>
     </Screen>
   )

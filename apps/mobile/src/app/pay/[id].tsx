@@ -11,6 +11,7 @@ import { pickPhotos, takePhoto, uploadPhoto, type Picked } from '../../lib/uploa
 import { space } from '../../theme'
 import { Button, Card, ErrorNote, Field, H2, Screen, Skeleton, T, Title } from '../../ui/kit'
 import { LocalPhotos } from '../../ui/photos'
+import { t } from '../../lib/i18n'
 
 type Mine = { charges: ChargeView[] }
 
@@ -46,42 +47,42 @@ export default function Pay() {
   if (send.data) {
     return (
       <Screen>
-        <Title sub="Председатель сверит чек с поступлением на счёт и зачтёт оплату. Придёт уведомление">Чек отправлен</Title>
-        <Button onPress={() => router.replace('/payments')}>К оплатам</Button>
+        <Title sub={t('Председатель сверит чек с поступлением на счёт и зачтёт оплату. Придёт уведомление')}>{t('Чек отправлен')}</Title>
+        <Button onPress={() => router.replace('/payments')}>{t('К оплатам')}</Button>
       </Screen>
     )
   }
   return (
     <Screen>
-      <View style={{ alignItems: 'flex-start' }}><Button variant="soft" icon={ArrowLeft} onPress={() => (router.canGoBack() ? router.back() : router.replace('/payments'))}>Назад</Button></View>
-      <Title sub={charge ? `${month(charge.period)} · помещение №${charge.unit.number}` : undefined}>{charge ? CHARGE_TYPE[charge.type] ?? charge.title : 'Оплата'}</Title>
+      <View style={{ alignItems: 'flex-start' }}><Button variant="soft" icon={ArrowLeft} onPress={() => (router.canGoBack() ? router.back() : router.replace('/payments'))}>{t('Назад')}</Button></View>
+      <Title sub={charge ? `${month(charge.period)} · ${t('помещение №{n}', { n: charge.unit.number })}` : undefined}>{charge ? CHARGE_TYPE[charge.type] ?? charge.title : t('Оплата')}</Title>
       <Card>
-        <T size={13.5} tone="ink2">К оплате</T>
+        <T size={13.5} tone="ink2">{t('К оплате')}</T>
         <T size={30} weight="display">{money(left)}</T>
-        {charge && <T size={13.5} tone="ink2">{charge.basis.kind === 'PER_SQM' ? `${charge.basis.area} м² × ${money(charge.basis.rate)}` : 'фиксированная сумма'}{charge.paid_amount > 0 ? ` · уже оплачено ${money(charge.paid_amount)}` : ''}</T>}
+        {charge && <T size={13.5} tone="ink2">{charge.basis.kind === 'PER_SQM' ? `${charge.basis.area} м² × ${money(charge.basis.rate)}` : t('фиксированная сумма')}{charge.paid_amount > 0 ? ` · ${t('уже оплачено {amount}', { amount: money(charge.paid_amount) })}` : ''}</T>}
       </Card>
 
-      <H2>1. Оплатите в Kaspi</H2>
+      <H2>{t('1. Оплатите в Kaspi')}</H2>
       {link.isPending ? <Skeleton rows={1} /> : link.data ? (
         <Card>
-          <T size={14.5}>Получатель: {link.data.recipient_name}</T>
-          <T size={13.5} tone="ink2">Укажите сумму {money(link.data.amount)} и назначение «{link.data.purpose}»</T>
-          <Button icon={ExternalLink} onPress={() => void Linking.openURL(link.data!.pay_url)}>Открыть Kaspi</Button>
+          <T size={14.5}>{t('Получатель: {name}', { name: link.data.recipient_name })}</T>
+          <T size={13.5} tone="ink2">{t('Укажите сумму {amount} и назначение «{purpose}»', { amount: money(link.data.amount), purpose: link.data.purpose })}</T>
+          <Button icon={ExternalLink} onPress={() => void Linking.openURL(link.data!.pay_url)}>{t('Открыть Kaspi')}</Button>
         </Card>
       ) : <ErrorNote>{link.error?.message}</ErrorNote>}
 
-      <H2>2. Загрузите чек</H2>
-      <T size={13.5} tone="ink2">Скриншот или фото чека из Kaspi. Номер операции в чеке защищает от путаницы с чужими оплатами</T>
+      <H2>{t('2. Загрузите чек')}</H2>
+      <T size={13.5} tone="ink2">{t('Скриншот или фото чека из Kaspi. Номер операции в чеке защищает от путаницы с чужими оплатами')}</T>
       {photo ? <LocalPhotos uris={[photo.uri]} onRemove={() => setPhoto(null)} /> : (
         <View style={{ flexDirection: 'row', gap: space.sm }}>
-          <Button variant="soft" icon={ImageIcon} loading={pick.isPending && pick.variables === false} onPress={() => pick.mutate(false)} style={{ flex: 1 }}>Из галереи</Button>
-          <Button variant="soft" icon={Camera} loading={pick.isPending && pick.variables === true} onPress={() => pick.mutate(true)} style={{ flex: 1 }}>Снять</Button>
+          <Button variant="soft" icon={ImageIcon} loading={pick.isPending && pick.variables === false} onPress={() => pick.mutate(false)} style={{ flex: 1 }}>{t('Из галереи')}</Button>
+          <Button variant="soft" icon={Camera} loading={pick.isPending && pick.variables === true} onPress={() => pick.mutate(true)} style={{ flex: 1 }}>{t('Снять')}</Button>
         </View>
       )}
-      <Field label="Сумма, ₸" hint="Можно не заполнять — прочитаем из чека" value={amount} onChangeText={setAmount} keyboardType="decimal-pad" placeholder={String(left)} error={fields.amount} />
-      <Field label="Номер операции" hint="Из чека: «№ квитанции»" value={ref} onChangeText={setRef} autoCapitalize="characters" error={fields.external_ref} />
+      <Field label={t('Сумма, ₸')} hint={t('Можно не заполнять — прочитаем из чека')} value={amount} onChangeText={setAmount} keyboardType="decimal-pad" placeholder={String(left)} error={fields.amount} />
+      <Field label={t('Номер операции')} hint={t('Из чека: «№ квитанции»')} value={ref} onChangeText={setRef} autoCapitalize="characters" error={fields.external_ref} />
       <ErrorNote>{(pick.error ?? (send.error && !Object.keys(fields).length ? send.error : null))?.message}</ErrorNote>
-      <Button icon={Send} loading={send.isPending} disabled={!photo} onPress={() => send.mutate()}>Отправить чек</Button>
+      <Button icon={Send} loading={send.isPending} disabled={!photo} onPress={() => send.mutate()}>{t('Отправить чек')}</Button>
     </Screen>
   )
 }

@@ -8,10 +8,11 @@ import { REQUEST_STATUS, type RequestRow } from '../../lib/labels'
 import { useHouse } from '../../lib/session'
 import { color, radius, space, TAB_BAR_SPACE } from '../../theme'
 import { Button, Empty, ErrorNote, Screen, Skeleton, T, Tag, Title } from '../../ui/kit'
+import { t } from '../../lib/i18n'
 
 export function RequestCard({ r }: { r: RequestRow }) {
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={`Заявка ${r.number}: ${r.title}`} onPress={() => router.push({ pathname: '/request/[id]', params: { id: r.id } })}
+    <Pressable accessibilityRole="button" accessibilityLabel={t('Заявка {n}: {title}', { n: r.number, title: r.title })} onPress={() => router.push({ pathname: '/request/[id]', params: { id: r.id } })}
       style={({ pressed }) => ({ borderRadius: radius.lg, backgroundColor: pressed ? color.surface2 : color.surface, padding: space.lg, gap: 6, flexDirection: 'row', alignItems: 'center' })}>
       <View style={{ flex: 1, gap: 6 }}>
         <T weight="semibold" numberOfLines={2}>№{r.number} {r.title}</T>
@@ -23,7 +24,7 @@ export function RequestCard({ r }: { r: RequestRow }) {
         )}
         <View style={{ flexDirection: 'row', gap: space.sm, flexWrap: 'wrap' }}>
           <Tag tone={r.status === 'DONE' ? 'brand' : 'mute'}>{r.progress.current_stage ?? REQUEST_STATUS[r.status] ?? r.status}</Tag>
-          {r.is_mine && <Tag tone="mute">моя</Tag>}
+          {r.is_mine && <Tag tone="mute">{t('моя')}</Tag>}
         </View>
       </View>
       <ChevronRight size={18} color={color.ink3} />
@@ -43,14 +44,14 @@ export default function Requests() {
   const closed = q.data?.filter((r) => ['DONE', 'REJECTED', 'CANCELLED'].includes(r.status) && r.is_mine) ?? []
   return (
     <Screen bottomInset={TAB_BAR_SPACE} refreshing={q.isRefetching} onRefresh={() => void q.refetch()}>
-      <Title sub="Сообщите о проблеме — председатель получит её сразу">Заявки</Title>
-      <Button icon={Plus} onPress={() => router.push('/request/new')}>Сообщить о проблеме</Button>
+      <Title sub={t('Сообщите о проблеме — председатель получит её сразу')}>{t('Заявки')}</Title>
+      <Button icon={Plus} onPress={() => router.push('/request/new')}>{t('Сообщить о проблеме')}</Button>
       {q.isPending && <Skeleton rows={3} height={96} />}
       <ErrorNote>{q.error?.message}</ErrorNote>
-      {q.data && open.length === 0 && closed.length === 0 && <Empty icon={ClipboardList} title="Заявок пока нет" text="Здесь будут ваши заявки и всё, что решается по дому." />}
-      {open.length > 0 && <T weight="semibold" tone="ink2">Сейчас решается</T>}
+      {q.data && open.length === 0 && closed.length === 0 && <Empty icon={ClipboardList} title={t('Заявок пока нет')} text={t('Здесь будут ваши заявки и всё, что решается по дому.')} />}
+      {open.length > 0 && <T weight="semibold" tone="ink2">{t('Сейчас решается')}</T>}
       {open.map((r) => <RequestCard key={r.id} r={r} />)}
-      {closed.length > 0 && <T weight="semibold" tone="ink2">Мои закрытые</T>}
+      {closed.length > 0 && <T weight="semibold" tone="ink2">{t('Мои закрытые')}</T>}
       {closed.map((r) => <RequestCard key={r.id} r={r} />)}
     </Screen>
   )

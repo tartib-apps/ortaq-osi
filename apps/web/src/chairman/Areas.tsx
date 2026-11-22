@@ -7,15 +7,16 @@ import { MAX_AREA } from '@ortaq/shared'
 import { api, ApiError } from '../shared/api/client'
 import { cn, ease, plural } from '../shared/lib/cn'
 import { Btn, Card, ErrorNote, fieldCls, PageHead, Segmented, Skeleton } from '../shared/ui/kit'
+import { t } from '../shared/i18n'
 
 type Unit = { id: string; number: string; type: string; area: string | null; entrance: number | null; floor: number | null }
 type Saved = { updated: number; readiness: { areas_filled: number; areas_total: number; is_voting_ready: boolean } }
 
 /** «54,3» и «54.3» — одно и то же; пусто — не трогаем */
 function parseArea(v: string): number | null | 'bad' {
-  const t = v.trim().replace(',', '.')
-  if (t === '') return null
-  const n = Number(t)
+  const s = v.trim().replace(',', '.')
+  if (s === '') return null
+  const n = Number(s)
   return Number.isFinite(n) && n > 0 && n <= MAX_AREA ? n : 'bad'
 }
 
@@ -63,29 +64,29 @@ export function Areas() {
 
   return (
     <>
-      <PageHead title="Площади помещений" sub="Площадь — основа веса голоса. Пока заполнены не все, голосования недоступны" />
+      <PageHead title={t('Площади помещений')} sub={t('Площадь — основа веса голоса. Пока заполнены не все, голосования недоступны')} />
       <Card>
         <div className="flex flex-wrap items-center gap-3">
-          <Segmented id="areas-filter" label="Какие помещения показать" value={filter} onChange={setFilter}
-            options={[{ v: 'empty', label: 'Без площади', n: emptyCount }, { v: 'all', label: 'Все', n: list.length }]} />
+          <Segmented id="areas-filter" label={t('Какие помещения показать')} value={filter} onChange={setFilter}
+            options={[{ v: 'empty', label: t('Без площади'), n: emptyCount }, { v: 'all', label: t('Все'), n: list.length }]} />
           <label className="relative min-w-[180px] flex-1 sm:max-w-[260px]">
-            <span className="sr-only">Номер помещения</span>
+            <span className="sr-only">{t('Номер помещения')}</span>
             <Search size={17} strokeWidth={2.2} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-ink-3" />
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Номер помещения" className={cn(fieldCls, 'h-11 pl-11')} />
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('Номер помещения')} className={cn(fieldCls, 'h-11 pl-11')} />
           </label>
         </div>
 
         {units.isPending && <Skeleton rows={4} className="mt-5" />}
         {units.data && visible.length === 0 && (
           <p className="mt-5 flex items-center gap-2 rounded-[18px] bg-brand-50 px-4 py-4 text-[14.5px] text-brand-800">
-            <Check size={18} strokeWidth={2.4} /> {filter === 'empty' && !query ? 'Площади заполнены у всех помещений' : 'Ничего не нашли'}
+            <Check size={18} strokeWidth={2.4} /> {filter === 'empty' && !query ? t('Площади заполнены у всех помещений') : t('Ничего не нашли')}
           </p>
         )}
 
         <div className="mt-5 flex flex-col gap-6">
           {byEntrance.map(([entrance, group]) => (
             <section key={entrance ?? 'none'}>
-              <h2 className="mb-2.5 text-[14px] font-semibold text-ink-2">{entrance ? `Подъезд ${entrance}` : 'Без подъезда'}</h2>
+              <h2 className="mb-2.5 text-[14px] font-semibold text-ink-2">{entrance ? t('Подъезд {n}', { n: entrance }) : t('Без подъезда')}</h2>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
                 {group.map((u) => {
                   const value = draft[u.id] ?? (u.area ? String(Number(u.area)) : '')
@@ -94,15 +95,15 @@ export function Areas() {
                   return (
                     <label key={u.id} className={cn('flex flex-col gap-1.5 rounded-[18px] p-3 transition-colors', touched ? 'bg-brand-50' : 'bg-surface-2')}>
                       <span className="flex items-baseline justify-between gap-2">
-                        <span className="nums text-[14.5px] font-semibold text-ink">кв. {u.number}</span>
-                        {u.floor && <span className="nums text-[12px] text-ink-3">{u.floor} эт.</span>}
+                        <span className="nums text-[14.5px] font-semibold text-ink">{t('кв. {unit}', { unit: u.number })}</span>
+                        {u.floor && <span className="nums text-[12px] text-ink-3">{t('{n} эт.', { n: u.floor })}</span>}
                       </span>
                       <span className="relative">
                         <input
                           value={value}
                           inputMode="decimal"
                           aria-invalid={bad || undefined}
-                          aria-label={`Площадь помещения ${u.number}, м²`}
+                          aria-label={t('Площадь помещения {unit}, м²', { unit: u.number })}
                           onChange={(e) => setDraft((d) => ({ ...d, [u.id]: e.target.value.replace(/[^\d.,]/g, '').slice(0, 8) }))}
                           placeholder="—"
                           className={cn(fieldCls, 'nums h-11 bg-surface pr-10')}
@@ -126,13 +127,13 @@ export function Areas() {
             <Ruler size={18} strokeWidth={2.2} className="shrink-0 text-white/70" />
             <p className="nums min-w-0 flex-1 text-[14.5px]">
               {changes.length > 0
-                ? `Изменено ${changes.length} ${plural(changes.length, ['помещение', 'помещения', 'помещений'])}${invalid ? `, с ошибкой ${invalid}` : ''}`
-                : invalid > 0 ? `Проверьте значения: ${invalid} с ошибкой` : `Сохранено. Заполнено ${saved!.readiness.areas_filled} из ${saved!.readiness.areas_total}`}
+                ? `${t('Изменено {n}', { n: changes.length })} ${t(plural(changes.length, ['помещение', 'помещения', 'помещений']))}${invalid ? t(', с ошибкой {n}', { n: invalid }) : ''}`
+                : invalid > 0 ? t('Проверьте значения: {n} с ошибкой', { n: invalid }) : t('Сохранено. Заполнено {filled} из {total}', { filled: saved!.readiness.areas_filled, total: saved!.readiness.areas_total })}
             </p>
             {changes.length > 0 && (
               <>
-                <Btn variant="ghost" onClick={() => setDraft({})} className="text-white/80 hover:bg-white/10 hover:text-white">Сбросить</Btn>
-                <Btn icon={Check} loading={save.isPending} disabled={invalid > 0} onClick={() => { setSaved(null); save.mutate() }}>Сохранить</Btn>
+                <Btn variant="ghost" onClick={() => setDraft({})} className="text-white/80 hover:bg-white/10 hover:text-white">{t('Сбросить')}</Btn>
+                <Btn icon={Check} loading={save.isPending} disabled={invalid > 0} onClick={() => { setSaved(null); save.mutate() }}>{t('Сохранить')}</Btn>
               </>
             )}
           </motion.div>

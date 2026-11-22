@@ -18,3 +18,10 @@ export const refreshStore = {
   set: async (token: string) => storage()?.setItem(KEY, token),
   clear: async () => storage()?.removeItem(KEY),
 }
+
+/** Язык — в localStorage: он переживает закрытие вкладки, в отличие от сессии */
+const LOCALE_KEY = 'ortaq.locale'
+export const localeStore = {
+  get: async () => { try { return window.localStorage.getItem(LOCALE_KEY) } catch { return null } },
+  set: async (v: string) => { try { window.localStorage.setItem(LOCALE_KEY, v) } catch { /* приватный режим */ } },
+}

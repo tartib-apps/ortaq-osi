@@ -4,6 +4,7 @@ import { Check, ChevronRight, ClipboardCheck, TriangleAlert } from 'lucide-react
 import type { ReadinessResponse } from '@ortaq/shared'
 import { cn, ease, plural } from '../lib/cn'
 import { Card, CardHead } from './kit'
+import { t } from '../i18n'
 
 type Item = { done: boolean; label: string; value: string; to?: string }
 
@@ -12,18 +13,18 @@ export type ReadinessLinks = { areas?: string; registry?: string; residents?: st
 
 function items(r: ReadinessResponse, links: ReadinessLinks): Item[] {
   return [
-    { done: r.units_generated, label: 'Помещения созданы', value: String(r.units_total) },
+    { done: r.units_generated, label: t('Помещения созданы'), value: String(r.units_total) },
     {
       done: r.chairman_activated,
-      label: 'Председатель назначен',
-      value: r.chairman_activated ? 'вошёл' : r.chairman_assigned ? 'ждём пароль и 2FA' : 'нет',
+      label: t('Председатель назначен'),
+      value: r.chairman_activated ? t('вошёл') : r.chairman_assigned ? t('ждём пароль и 2FA') : t('нет'),
     },
-    { done: r.is_voting_ready, label: 'Площади помещений', value: `${r.areas_filled} из ${r.areas_total}`, to: links.areas },
-    { done: r.registry_uploaded, label: 'Реестр собственников', value: r.registry_uploaded ? 'загружен' : 'не загружен', to: links.registry },
+    { done: r.is_voting_ready, label: t('Площади помещений'), value: t('{a} из {b}', { a: r.areas_filled, b: r.areas_total }), to: links.areas },
+    { done: r.registry_uploaded, label: t('Реестр собственников'), value: r.registry_uploaded ? t('загружен') : t('не загружен'), to: links.registry },
     {
       done: r.residents_joined > 0,
-      label: 'Жильцы присоединились',
-      value: `${r.residents_joined} ${plural(r.residents_joined, ['жилец', 'жильца', 'жильцов'])}`,
+      label: t('Жильцы присоединились'),
+      value: `${r.residents_joined} ${t(plural(r.residents_joined, ['жилец', 'жильца', 'жильцов']))}`,
       to: links.residents,
     },
   ]
@@ -33,7 +34,7 @@ function items(r: ReadinessResponse, links: ReadinessLinks): Item[] {
  * Чек-лист готовности дома (docs/04 §4): вместо пустого дашборда при первом входе.
  * Одна и та же картина у админа платформы и у председателя.
  */
-export function Readiness({ data, title = 'Подготовка дома', links = {} }: { data: ReadinessResponse; title?: string; links?: ReadinessLinks }) {
+export function Readiness({ data, title = t('Подготовка дома'), links = {} }: { data: ReadinessResponse; title?: string; links?: ReadinessLinks }) {
   const list = items(data, links)
   const done = list.filter((i) => i.done).length
   return (
@@ -41,8 +42,8 @@ export function Readiness({ data, title = 'Подготовка дома', links
       <CardHead
         icon={ClipboardCheck}
         title={title}
-        sub="Что осталось, чтобы дом заработал полностью"
-        aside={<span className="nums font-display text-[15px] font-bold text-ink-2">{done} из {list.length}</span>}
+        sub={t('Что осталось, чтобы дом заработал полностью')}
+        aside={<span className="nums font-display text-[15px] font-bold text-ink-2">{t('{a} из {b}', { a: done, b: list.length })}</span>}
       />
       <div className="mb-4 flex gap-1.5" aria-hidden>
         {list.map((i) => <span key={i.label} className={cn('h-1.5 flex-1 rounded-full', i.done ? 'bg-brand-500' : 'bg-surface-3')} />)}
@@ -62,7 +63,7 @@ export function Readiness({ data, title = 'Подготовка дома', links
           {data.blocking_issues.map((issue) => (
             <li key={issue} className="flex items-start gap-2 rounded-[15px] bg-warning-soft px-4 py-3 text-[14px] text-ink">
               <TriangleAlert size={17} strokeWidth={2.2} className="mt-px shrink-0 text-warning" />
-              {issue}
+              {t(issue)}
             </li>
           ))}
         </ul>

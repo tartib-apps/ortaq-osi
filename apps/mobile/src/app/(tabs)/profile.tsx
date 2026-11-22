@@ -8,6 +8,8 @@ import { formatPhone, initials } from '../../lib/format'
 import { useHouse, useHouses, useMe, useMyPlace, useSession } from '../../lib/session'
 import { color, radius, space, TAB_BAR_SPACE } from '../../theme'
 import { Button, Card, ErrorNote, H2, Screen, Skeleton, T, Tag } from '../../ui/kit'
+import { LangSwitch } from '../../ui/lang'
+import { t } from '../../lib/i18n'
 
 type Settings = { push: Record<NotificationCategory, boolean>; locked: NotificationCategory[] }
 
@@ -48,22 +50,22 @@ export default function Profile() {
       <Card>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
           {place.data?.identity_verified ? <BadgeCheck size={22} strokeWidth={2.1} color={color.brand600} /> : <ShieldCheck size={22} strokeWidth={2.1} color={color.ink3} />}
-          <T weight="semibold" style={{ flex: 1 }}>{place.data?.identity_verified ? 'Личность подтверждена через eGov' : 'Личность не подтверждена'}</T>
+          <T weight="semibold" style={{ flex: 1 }}>{place.data?.identity_verified ? t('Личность подтверждена через eGov') : t('Личность не подтверждена')}</T>
         </View>
         {place.data && !place.data.identity_verified && place.data.role === 'RESIDENT' && (
-          <Button variant="soft" onPress={() => router.push('/verify')}>Подтвердить</Button>
+          <Button variant="soft" onPress={() => router.push('/verify')}>{t('Подтвердить')}</Button>
         )}
         {place.data?.units.map((u) => (
           <View key={u.number} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.md }}>
-            <T>кв. {u.number} · {u.relation === 'OWNER' ? 'собственник' : 'наниматель'}</T>
-            <Tag tone={u.can_vote ? 'brand' : 'mute'}>{u.can_vote ? 'голосует' : 'без голоса'}</Tag>
+            <T>{u.relation === 'OWNER' ? t('кв. {n} · собственник', { n: u.number }) : t('кв. {n} · наниматель', { n: u.number })}</T>
+            <Tag tone={u.can_vote ? 'brand' : 'mute'}>{u.can_vote ? t('голосует') : t('без голоса')}</Tag>
           </View>
         ))}
       </Card>
 
       {houses.data && houses.data.length > 1 && (
         <Card>
-          <H2>Мои дома</H2>
+          <H2>{t('Мои дома')}</H2>
           {houses.data.map((h) => (
             <Pressable key={h.id} accessibilityRole="radio" accessibilityState={{ checked: h.id === house?.id }} onPress={() => setHouseId(h.id)}
               style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, minHeight: 52, borderRadius: radius.md, paddingHorizontal: space.md, backgroundColor: h.id === house?.id ? color.brand50 : color.surface2 }}>
@@ -75,18 +77,18 @@ export default function Profile() {
       )}
 
       <Card>
-        <H2>Уведомления</H2>
+        <H2>{t('Уведомления')}</H2>
         {settings.isPending && <Skeleton rows={3} height={52} />}
         {settings.data && CATEGORIES.map((c) => {
           const locked = settings.data.locked.includes(c.key)
           return (
             <View key={c.key} style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, minHeight: 52 }}>
               <View style={{ flex: 1 }}>
-                <T weight="medium">{c.label}</T>
-                <T size={13} tone="ink2">{c.hint}</T>
+                <T weight="medium">{t(c.label)}</T>
+                <T size={13} tone="ink2">{t(c.hint)}</T>
               </View>
               <Switch
-                accessibilityLabel={`Push: ${c.label}`}
+                accessibilityLabel={`Push: ${t(c.label)}`}
                 value={settings.data.push[c.key]}
                 disabled={locked || toggle.isPending}
                 onValueChange={(v) => toggle.mutate({ [c.key]: v })}
@@ -99,8 +101,13 @@ export default function Profile() {
         <ErrorNote>{toggle.error?.message ?? settings.error?.message}</ErrorNote>
       </Card>
 
-      <Button variant="soft" icon={LogOut} onPress={() => void signOut().then(() => router.replace('/sign-in'))}>Выйти</Button>
-      <T size={12.5} tone="ink3" style={{ textAlign: 'center' }}>Данные хранятся в Казахстане</T>
+      <Card>
+        <H2>Язык · Тіл</H2>
+        <LangSwitch signedIn />
+      </Card>
+
+      <Button variant="soft" icon={LogOut} onPress={() => void signOut().then(() => router.replace('/sign-in'))}>{t('Выйти')}</Button>
+      <T size={12.5} tone="ink3" style={{ textAlign: 'center' }}>{t('Данные хранятся в Казахстане')}</T>
     </Screen>
   )
 }

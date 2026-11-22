@@ -1,3 +1,4 @@
+import { t } from '../i18n'
 /**
  * Клиент API. Токены живут в httpOnly cookie, JS их не видит: localStorage для них запрещён (docs/13 §2).
  * Истёкший access обновляется один раз за всех; 428 открывает запрос кода и повторяет действие.
@@ -10,13 +11,14 @@ export class ApiError extends Error {
     message: string,
     readonly details?: unknown,
   ) {
-    super(message)
+    // Сервер отвечает по-русски; известные сообщения показываем на языке интерфейса
+    super(t(message))
   }
 
   /** Ошибки полей формы из ответа 400 */
   get fields(): Record<string, string> {
     const list = (this.details as { fields?: { path: string; message: string }[] } | undefined)?.fields ?? []
-    return Object.fromEntries(list.map((f) => [f.path, f.message]))
+    return Object.fromEntries(list.map((f) => [f.path, t(f.message)]))
   }
 }
 

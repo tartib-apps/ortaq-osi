@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import type { FinanceOverview } from '@ortaq/shared'
 import { api } from '../../shared/api/client'
 import { cn } from '../../shared/lib/cn'
+import { t } from '../../shared/i18n'
 
 /** Разделы финансов: журнал, начисления, оплаты, должники, отчёты. Счётчики — то, что ждёт решения */
 export function FinanceTabs() {
@@ -10,14 +11,14 @@ export function FinanceTabs() {
   const overview = useQuery({ queryKey: ['house', houseId, 'finance-overview'], queryFn: () => api<FinanceOverview>(`/houses/${houseId}/finance/overview`), staleTime: 30_000 })
   const base = `/h/${houseId}/finance`
   const tabs = [
-    { to: base, label: 'Журнал', end: true, n: overview.data?.board?.drafts },
-    { to: `${base}/charges`, label: 'Начисления' },
-    { to: `${base}/payments`, label: 'Оплаты', n: overview.data?.board?.payments_to_review },
-    { to: `${base}/debtors`, label: 'Должники' },
-    { to: `${base}/reports`, label: 'Отчёты' },
+    { to: base, label: t('Журнал'), end: true, n: overview.data?.board?.drafts },
+    { to: `${base}/charges`, label: t('Начисления') },
+    { to: `${base}/payments`, label: t('Оплаты'), n: overview.data?.board?.payments_to_review },
+    { to: `${base}/debtors`, label: t('Должники') },
+    { to: `${base}/reports`, label: t('Отчёты') },
   ]
   return (
-    <nav aria-label="Разделы финансов" className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
+    <nav aria-label={t('Разделы финансов')} className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
       {tabs.map((t) => (
         <NavLink key={t.to} to={t.to} end={t.end}
           className={({ isActive }) => cn('inline-flex h-11 shrink-0 items-center gap-2 rounded-full px-4 text-[14px] font-semibold transition-colors',

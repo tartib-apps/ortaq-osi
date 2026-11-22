@@ -6,11 +6,12 @@ import { api, ApiError } from '../../shared/api/client'
 import { cn } from '../../shared/lib/cn'
 import { Btn, Card, CardHead, ErrorNote, Field, fieldCls, Input } from '../../shared/ui/kit'
 import { ACCOUNT_TYPE } from '../labels'
+import { t, tr } from '../../shared/i18n'
 
-const HINT: Record<AccountType, string> = {
+const HINT: Record<AccountType, string> = tr({
   CURRENT: 'Сюда поступают взносы на управление; с него оплачиваются текущие расходы',
   SAVINGS: 'Накопления на капремонт: по закону отдельный счёт, тратится по решению собрания',
-}
+})
 
 function AccountForm({ houseId, type }: { houseId: string; type: AccountType }) {
   const qc = useQueryClient()
@@ -32,18 +33,18 @@ function AccountForm({ houseId, type }: { houseId: string; type: AccountType }) 
         <p className="text-[15px] font-semibold text-ink">{ACCOUNT_TYPE[type]}</p>
         <p className="mt-0.5 text-[13px] text-ink-2">{HINT[type]}</p>
       </div>
-      <Field label="Банк" error={fields.bank_name}>{(id) => <Input id={id} value={bank} onChange={setBank} placeholder="Halyk Bank" />}</Field>
-      <Field label="Номер счёта" hint="Храним только последние 4 цифры" error={fields.account_number}>
-        {(id) => <Input id={id} value={number} onChange={setNumber} placeholder="KZ… или 4 последние цифры" />}
+      <Field label={t('Банк')} error={fields.bank_name}>{(id) => <Input id={id} value={bank} onChange={setBank} placeholder="Halyk Bank" />}</Field>
+      <Field label={t('Номер счёта')} hint={t('Храним только последние 4 цифры')} error={fields.account_number}>
+        {(id) => <Input id={id} value={number} onChange={setNumber} placeholder={t('KZ… или 4 последние цифры')} />}
       </Field>
       <div className="grid gap-3 sm:grid-cols-2">
-        <Field label="Остаток, ₸" error={fields.opening_balance}>{(id) => <Input id={id} value={opening} onChange={setOpening} inputMode="decimal" placeholder="0" />}</Field>
-        <Field label="На дату" error={fields.opened_on}>
+        <Field label={t('Остаток, ₸')} error={fields.opening_balance}>{(id) => <Input id={id} value={opening} onChange={setOpening} inputMode="decimal" placeholder="0" />}</Field>
+        <Field label={t('На дату')} error={fields.opened_on}>
           {(id) => <input id={id} type="date" value={openedOn} onChange={(e) => setOpenedOn(e.target.value)} className={cn(fieldCls, 'h-12')} />}
         </Field>
       </div>
       <ErrorNote>{save.error && !Object.keys(fields).length ? save.error.message : null}</ErrorNote>
-      <Btn loading={save.isPending} disabled={bank.trim().length < 2} onClick={() => save.mutate()}>Добавить счёт</Btn>
+      <Btn loading={save.isPending} disabled={bank.trim().length < 2} onClick={() => save.mutate()}>{t('Добавить счёт')}</Btn>
     </div>
   )
 }
@@ -54,7 +55,7 @@ export function AccountsSetup({ houseId, existing }: { houseId: string; existing
   if (missing.length === 0) return null
   return (
     <Card>
-      <CardHead icon={Landmark} title="Счета дома" sub="Остаток на дату — основа всех цифр после неё. После первой проведённой операции он не меняется" />
+      <CardHead icon={Landmark} title={t('Счета дома')} sub={t('Остаток на дату — основа всех цифр после неё. После первой проведённой операции он не меняется')} />
       <div className="grid gap-3 lg:grid-cols-2">{missing.map((t) => <AccountForm key={t} houseId={houseId} type={t} />)}</div>
     </Card>
   )

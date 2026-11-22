@@ -8,6 +8,7 @@ import { ACCEPT_ATTR, openFile, uploadFile } from '../../shared/api/upload'
 import { cn, ease, formatDate, formatDateTime } from '../../shared/lib/cn'
 import { Btn, ErrorNote, Input, Select, Tag } from '../../shared/ui/kit'
 import { ACCOUNT_TYPE, DOC_KIND, MISSING_DOC, money, TX_STATUS } from '../labels'
+import { t } from '../../shared/i18n'
 
 /**
  * Строка журнала с раскрытием: документы, проведение, аннулирование. Правила прав повторяют
@@ -56,7 +57,7 @@ export function TxRow({ houseId, tx, role, userId }: { houseId: string; tx: Tran
         </span>
         <span className="hidden flex-wrap justify-end gap-1.5 sm:flex">
           {tx.status !== 'CONFIRMED' && <Tag tone={tx.status === 'DRAFT' ? 'warn' : 'mute'}>{TX_STATUS[tx.status]}</Tag>}
-          {tx.missing_documents.length > 0 && <Tag tone="warn" icon={TriangleAlert}>нет документов</Tag>}
+          {tx.missing_documents.length > 0 && <Tag tone="warn" icon={TriangleAlert}>{t('нет документов')}</Tag>}
         </span>
         <span className={cn('shrink-0 text-right text-[15px] font-semibold tabular-nums', tx.direction === 'IN' ? 'text-brand-700' : 'text-ink', voided && 'text-ink-3 line-through')}>
           {sign}{money(tx.amount)}
@@ -69,13 +70,13 @@ export function TxRow({ houseId, tx, role, userId }: { houseId: string; tx: Tran
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.25, ease }} className="overflow-hidden">
             <div className="flex flex-col gap-4 px-4 pb-4 sm:px-5">
               <dl className="grid gap-x-6 gap-y-2 rounded-[15px] bg-surface p-4 text-[13.5px] sm:grid-cols-2">
-                <div><dt className="text-ink-2">Строка формы</dt><dd className="text-ink">{tx.category.code} — {tx.category.name}</dd></div>
-                <div><dt className="text-ink-2">Счёт и период</dt><dd className="text-ink">{ACCOUNT_TYPE[tx.account.type]} · отчёт за {tx.period}</dd></div>
-                {tx.created_by && <div><dt className="text-ink-2">Внёс</dt><dd className="text-ink">{tx.created_by.name}, {formatDateTime(tx.created_at)}</dd></div>}
-                {tx.confirmed_at && <div><dt className="text-ink-2">Проведена</dt><dd className="text-ink">{formatDateTime(tx.confirmed_at)}</dd></div>}
-                {tx.void_reason && <div className="sm:col-span-2"><dt className="text-ink-2">Причина аннулирования</dt><dd className="text-ink">{tx.void_reason}</dd></div>}
-                {tx.corrects && <div><dt className="text-ink-2">Исправляет</dt><dd className="text-ink">операцию №{tx.corrects.number}</dd></div>}
-                {tx.corrected_by && <div><dt className="text-ink-2">Исправлена</dt><dd className="text-ink">операцией №{tx.corrected_by.number}</dd></div>}
+                <div><dt className="text-ink-2">{t('Строка формы')}</dt><dd className="text-ink">{tx.category.code} — {tx.category.name}</dd></div>
+                <div><dt className="text-ink-2">{t('Счёт и период')}</dt><dd className="text-ink">{ACCOUNT_TYPE[tx.account.type]} · {t('отчёт за {period}', { period: tx.period })}</dd></div>
+                {tx.created_by && <div><dt className="text-ink-2">{t('Внёс')}</dt><dd className="text-ink">{tx.created_by.name}, {formatDateTime(tx.created_at)}</dd></div>}
+                {tx.confirmed_at && <div><dt className="text-ink-2">{t('Проведена')}</dt><dd className="text-ink">{formatDateTime(tx.confirmed_at)}</dd></div>}
+                {tx.void_reason && <div className="sm:col-span-2"><dt className="text-ink-2">{t('Причина аннулирования')}</dt><dd className="text-ink">{tx.void_reason}</dd></div>}
+                {tx.corrects && <div><dt className="text-ink-2">{t('Исправляет')}</dt><dd className="text-ink">{t('операцию №{number}', { number: tx.corrects.number })}</dd></div>}
+                {tx.corrected_by && <div><dt className="text-ink-2">{t('Исправлена')}</dt><dd className="text-ink">{t('операцией №{number}', { number: tx.corrected_by.number })}</dd></div>}
               </dl>
 
               <div className="flex flex-col gap-2">
@@ -85,24 +86,24 @@ export function TxRow({ houseId, tx, role, userId }: { houseId: string; tx: Tran
                     <button type="button" onClick={() => view.mutate(d.file_id)} className="min-w-0 flex-1 truncate text-left text-[14px] font-medium text-brand-700 hover:underline">{DOC_KIND[d.kind]}</button>
                     {canRemove && !voided && (removing === d.id ? (
                       <span className="flex flex-wrap items-center gap-2">
-                        {tx.status !== 'DRAFT' && <span className="w-56"><Input value={reason} onChange={setReason} placeholder="Почему изымаете" /></span>}
+                        {tx.status !== 'DRAFT' && <span className="w-56"><Input value={reason} onChange={setReason} placeholder={t('Почему изымаете')} /></span>}
                         <Btn variant="soft" loading={act.isPending} disabled={tx.status !== 'DRAFT' && reason.trim().length < 5}
-                          onClick={() => act.mutate({ path: `documents/${d.id}/remove`, body: tx.status === 'DRAFT' ? {} : { reason } })}>Изъять</Btn>
-                        <Btn variant="ghost" onClick={() => setRemoving(null)}>Отмена</Btn>
+                          onClick={() => act.mutate({ path: `documents/${d.id}/remove`, body: tx.status === 'DRAFT' ? {} : { reason } })}>{t('Изъять')}</Btn>
+                        <Btn variant="ghost" onClick={() => setRemoving(null)}>{t('Отмена')}</Btn>
                       </span>
-                    ) : <Btn variant="ghost" onClick={() => { setRemoving(d.id); setReason('') }}>Изъять</Btn>)}
+                    ) : <Btn variant="ghost" onClick={() => { setRemoving(d.id); setReason('') }}>{t('Изъять')}</Btn>)}
                   </div>
                 ))}
                 {tx.missing_documents.length > 0 && (
                   <p className="flex items-start gap-2 rounded-[15px] bg-warning-soft px-4 py-3 text-[13.5px] text-warning">
-                    <TriangleAlert size={16} className="mt-px shrink-0" /> Для отчёта не хватает: {tx.missing_documents.map((k) => MISSING_DOC[k]).join(', ')}
+                    <TriangleAlert size={16} className="mt-px shrink-0" /> {t('Для отчёта не хватает: {docs}', { docs: tx.missing_documents.map((k) => MISSING_DOC[k]).join(', ') })}
                   </p>
                 )}
                 {!voided && (
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="w-56"><Select value={kind} onChange={(k) => setKind(k as DocumentKind)} options={DocumentKind.map((k) => ({ v: k, label: DOC_KIND[k] ?? k }))} /></span>
                     <label className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-full bg-surface px-4 text-[14px] font-semibold text-ink focus-within:ring-[3px] focus-within:ring-brand-100 hover:bg-surface-3">
-                      <Paperclip size={16} /> {attach.isPending ? 'Загружаем…' : 'Приложить'}
+                      <Paperclip size={16} /> {attach.isPending ? t('Загружаем…') : t('Приложить')}
                       <input type="file" accept={ACCEPT_ATTR} className="sr-only" disabled={attach.isPending}
                         onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) attach.mutate(f) }} />
                     </label>
@@ -112,20 +113,20 @@ export function TxRow({ houseId, tx, role, userId }: { houseId: string; tx: Tran
 
               {voiding ? (
                 <div className="flex flex-col gap-2 rounded-[15px] bg-surface p-3">
-                  <Input value={reason} onChange={setReason} placeholder="Причина: её увидят жильцы" autoFocus />
+                  <Input value={reason} onChange={setReason} placeholder={t('Причина: её увидят жильцы')} autoFocus />
                   <div className="flex flex-wrap gap-2">
                     <Btn variant="soft" loading={act.isPending && act.variables?.path === 'void'} disabled={reason.trim().length < 5} onClick={() => act.mutate({ path: 'void', body: { reason } })}>
-                      {tx.status === 'DRAFT' ? 'Снять черновик' : 'Аннулировать'}
+                      {tx.status === 'DRAFT' ? t('Снять черновик') : t('Аннулировать')}
                     </Btn>
-                    <Btn variant="ghost" onClick={() => setVoiding(false)}>Отмена</Btn>
+                    <Btn variant="ghost" onClick={() => setVoiding(false)}>{t('Отмена')}</Btn>
                   </div>
                 </div>
               ) : (
                 <div className="flex flex-wrap gap-2">
                   {chairman && tx.status === 'DRAFT' && (
-                    <Btn loading={act.isPending && act.variables?.path === 'confirm'} onClick={() => act.mutate({ path: 'confirm', body: { revision: tx.revision } })}>Провести</Btn>
+                    <Btn loading={act.isPending && act.variables?.path === 'confirm'} onClick={() => act.mutate({ path: 'confirm', body: { revision: tx.revision } })}>{t('Провести')}</Btn>
                   )}
-                  {canVoid && <Btn variant="soft" onClick={() => { setVoiding(true); setReason('') }}>{tx.status === 'DRAFT' ? 'Снять черновик' : 'Аннулировать'}</Btn>}
+                  {canVoid && <Btn variant="soft" onClick={() => { setVoiding(true); setReason('') }}>{tx.status === 'DRAFT' ? t('Снять черновик') : t('Аннулировать')}</Btn>}
                 </div>
               )}
               <ErrorNote>{(act.error ?? attach.error ?? view.error)?.message}</ErrorNote>

@@ -10,6 +10,7 @@ import { formatDateTime } from '../../shared/lib/cn'
 import { Btn, Card, CardHead, Empty, ErrorNote, Input, PageHead, Segmented, Skeleton, Tag } from '../../shared/ui/kit'
 import { money, monthLabel, PAYMENT_METHOD, PAYMENT_STATUS } from '../labels'
 import { FinanceTabs } from './FinanceTabs'
+import { t } from '../../shared/i18n'
 
 /** Одна оплата на проверке: чек, распознанное, замечания и решение председателя */
 function PaymentCard({ houseId, p, chairman }: { houseId: string; p: PaymentView; chairman: boolean }) {
@@ -30,9 +31,9 @@ function PaymentCard({ houseId, p, chairman }: { houseId: string; p: PaymentView
       <div className="flex flex-wrap items-start gap-3">
         <div className="min-w-0 flex-1">
           <p className="text-[15.5px] font-semibold text-ink">№{p.unit.number} · {p.paid_by?.name}</p>
-          <p className="mt-0.5 text-[13px] text-ink-2">{p.charge.title} · к оплате {money(left)} из {money(p.charge.amount)}</p>
+          <p className="mt-0.5 text-[13px] text-ink-2">{p.charge.title} · {t('к оплате {left} из {total}', { left: money(left), total: money(p.charge.amount) })}</p>
           <p className="mt-0.5 text-[12.5px] text-ink-3">
-            {PAYMENT_METHOD[p.method]}{p.external_ref ? ` · операция ${p.external_ref}` : ''}{p.paid_at ? ` · оплачено ${formatDateTime(p.paid_at)}` : ''} · подано {formatDateTime(p.created_at)}
+            {PAYMENT_METHOD[p.method]}{p.external_ref ? ` · ${t('операция {ref}', { ref: p.external_ref })}` : ''}{p.paid_at ? ` · ${t('оплачено {date}', { date: formatDateTime(p.paid_at) })}` : ''} · {t('подано {date}', { date: formatDateTime(p.created_at) })}
           </p>
         </div>
         <div className="text-right">
@@ -42,11 +43,11 @@ function PaymentCard({ houseId, p, chairman }: { houseId: string; p: PaymentView
       </div>
       {p.receipt && (
         <div className="flex flex-wrap items-center gap-3 rounded-[15px] bg-surface px-4 py-3 text-[13.5px]">
-          <button type="button" onClick={() => view.mutate(p.receipt!.file_id)} className="font-semibold text-brand-700 hover:underline">Открыть чек</button>
+          <button type="button" onClick={() => view.mutate(p.receipt!.file_id)} className="font-semibold text-brand-700 hover:underline">{t('Открыть чек')}</button>
           <span className="text-ink-2">
             {p.receipt.recognized
-              ? `Распознано: ${p.receipt.recognized.amount !== null ? money(p.receipt.recognized.amount) : 'сумма —'}${p.receipt.recognized.ref ? ` · №${p.receipt.recognized.ref}` : ''}${p.receipt.recognized.recipient ? ` · ${p.receipt.recognized.recipient}` : ''}`
-              : 'Чек не распознан: сумму и номер ввёл плательщик'}
+              ? t('Распознано: {details}', { details: `${p.receipt.recognized.amount !== null ? money(p.receipt.recognized.amount) : t('сумма —')}${p.receipt.recognized.ref ? ` · №${p.receipt.recognized.ref}` : ''}${p.receipt.recognized.recipient ? ` · ${p.receipt.recognized.recipient}` : ''}` })
+              : t('Чек не распознан: сумму и номер ввёл плательщик')}
           </span>
         </div>
       )}
@@ -55,13 +56,13 @@ function PaymentCard({ houseId, p, chairman }: { houseId: string; p: PaymentView
           {p.flags.map((f) => <li key={f.code} className="flex items-start gap-2"><TriangleAlert size={15} className="mt-0.5 shrink-0" />{f.message}</li>)}
         </ul>
       )}
-      {p.rejection_reason && <p className="text-[13.5px] text-ink-2">Причина отказа: {p.rejection_reason}</p>}
+      {p.rejection_reason && <p className="text-[13.5px] text-ink-2">{t('Причина отказа: {reason}', { reason: p.rejection_reason })}</p>}
       {open && (rejecting ? (
         <div className="flex flex-col gap-2">
-          <Input value={reason} onChange={setReason} placeholder="Причина — её увидит плательщик" autoFocus />
+          <Input value={reason} onChange={setReason} placeholder={t('Причина — её увидит плательщик')} autoFocus />
           <div className="flex gap-2">
-            <Btn variant="soft" loading={act.isPending} disabled={reason.trim().length < 5} onClick={() => act.mutate({ path: 'reject', body: { reason } })}>Отклонить</Btn>
-            <Btn variant="ghost" onClick={() => setRejecting(false)}>Отмена</Btn>
+            <Btn variant="soft" loading={act.isPending} disabled={reason.trim().length < 5} onClick={() => act.mutate({ path: 'reject', body: { reason } })}>{t('Отклонить')}</Btn>
+            <Btn variant="ghost" onClick={() => setRejecting(false)}>{t('Отмена')}</Btn>
           </div>
         </div>
       ) : (
@@ -69,15 +70,15 @@ function PaymentCard({ houseId, p, chairman }: { houseId: string; p: PaymentView
           {chairman && p.flags.length > 0 && (
             <label className="flex min-h-11 items-center gap-2 text-[13.5px] text-ink">
               <input type="checkbox" checked={acknowledged} onChange={(e) => setAcknowledged(e.target.checked)} className="size-5 accent-[var(--color-brand-600)]" />
-              Замечания проверил
+              {t('Замечания проверил')}
             </label>
           )}
           {chairman && (
             <Btn loading={act.isPending && act.variables?.path === 'confirm'} disabled={p.flags.length > 0 && !acknowledged}
-              onClick={() => act.mutate({ path: 'confirm', body: { acknowledge_flags: acknowledged } })}>Зачесть {money(Math.min(p.amount, left))}</Btn>
+              onClick={() => act.mutate({ path: 'confirm', body: { acknowledge_flags: acknowledged } })}>{t('Зачесть {amount}', { amount: money(Math.min(p.amount, left)) })}</Btn>
           )}
-          <Btn variant="soft" onClick={() => { setRejecting(true); setReason('') }}>Отклонить</Btn>
-          {!chairman && <span className="text-[13px] text-ink-2">Зачитывает председатель</span>}
+          <Btn variant="soft" onClick={() => { setRejecting(true); setReason('') }}>{t('Отклонить')}</Btn>
+          {!chairman && <span className="text-[13px] text-ink-2">{t('Зачитывает председатель')}</span>}
         </div>
       ))}
       <ErrorNote>{(act.error ?? view.error)?.message}</ErrorNote>
@@ -94,19 +95,19 @@ export function PaymentsPage() {
   const q = useQuery({ queryKey: ['house', houseId, 'payments', status], queryFn: () => api<PaymentView[]>(`/houses/${houseId}/payments?status=${status}`) })
   return (
     <div className="flex flex-col gap-5">
-      <PageHead title="Финансы" sub="Оплаты жильцов: чек, сверка и зачёт в начисление" />
+      <PageHead title={t('Финансы')} sub={t('Оплаты жильцов: чек, сверка и зачёт в начисление')} />
       <FinanceTabs />
       <Card>
-        <CardHead icon={Inbox} title={status === 'review' ? 'Ждут проверки' : 'Все оплаты'}
-          sub="Замечания не отклоняют оплату сами: у повтора бывает объяснение, решает председатель"
-          aside={<Segmented id="pay-status" label="Показать" value={status} onChange={setStatus} options={[{ v: 'review', label: 'На проверке' }, { v: 'all', label: 'Все' }]} />} />
+        <CardHead icon={Inbox} title={status === 'review' ? t('Ждут проверки') : t('Все оплаты')}
+          sub={t('Замечания не отклоняют оплату сами: у повтора бывает объяснение, решает председатель')}
+          aside={<Segmented id="pay-status" label={t('Показать')} value={status} onChange={setStatus} options={[{ v: 'review', label: t('На проверке') }, { v: 'all', label: t('Все') }]} />} />
         <ErrorNote>{q.error?.message}</ErrorNote>
         {q.isPending ? <Skeleton rows={3} /> : (q.data?.length ?? 0) === 0 ? (
-          <Empty icon={Inbox} title={status === 'review' ? 'Проверять нечего' : 'Оплат пока нет'} text="Когда жилец загрузит чек, оплата появится здесь и придёт уведомлением." />
+          <Empty icon={Inbox} title={status === 'review' ? t('Проверять нечего') : t('Оплат пока нет')} text={t('Когда жилец загрузит чек, оплата появится здесь и придёт уведомлением.')} />
         ) : (
           <ul className="flex flex-col gap-3">{q.data!.map((p) => <PaymentCard key={p.id} houseId={houseId} p={p} chairman={chairman} />)}</ul>
         )}
-        {q.data && status === 'all' && <p className="mt-3 text-[12.5px] text-ink-3">Показаны последние 500 · месяцы: {[...new Set(q.data.map((p) => monthLabel(p.charge.period)))].join(', ')}</p>}
+        {q.data && status === 'all' && <p className="mt-3 text-[12.5px] text-ink-3">{t('Показаны последние 500 · месяцы: {months}', { months: [...new Set(q.data.map((p) => monthLabel(p.charge.period)))].join(', ') })}</p>}
       </Card>
     </div>
   )

@@ -112,7 +112,7 @@ export class AuthController {
   updateMe(@Body(new ZodPipe(updateMeBody)) body: UpdateMeBody) {
     const userId = ctx().userId
     if (!userId) throw unauthenticated()
-    return this.auth.updateProfile(userId, body.full_name)
+    return this.auth.updateProfile(userId, body)
   }
 
   private respond(outcome: AuthOutcome, req: Request, res: Response) {

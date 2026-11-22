@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type { MeResponse } from '@ortaq/shared'
+import { adoptProfileLocale } from './i18n'
 import { api, clearTokens, refresh, saveTokens, setSignedOutHandler, type Tokens } from './api'
 
 type Status = 'loading' | 'signedOut' | 'signedIn'
@@ -76,7 +77,15 @@ export type MyPlace = {
 
 export function useMe() {
   const { status } = useSession()
-  return useQuery({ queryKey: ['me'], queryFn: () => api<MeResponse>('/me'), enabled: status === 'signedIn' })
+  return useQuery({
+    queryKey: ['me'],
+    queryFn: async () => {
+      const me = await api<MeResponse>('/me')
+      adoptProfileLocale(me.locale)
+      return me
+    },
+    enabled: status === 'signedIn',
+  })
 }
 
 export function useHouses() {

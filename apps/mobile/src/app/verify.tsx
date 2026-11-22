@@ -9,6 +9,7 @@ import { openEgov } from '../lib/egov'
 import { useHouse } from '../lib/session'
 import { color, space } from '../theme'
 import { Button, Card, ErrorNote, H2, IconBadge, Screen, T, Title } from '../ui/kit'
+import { t } from '../lib/i18n'
 
 type Started = { verification_id: string; qr_url: string; deeplink: string; expires_at: string }
 type Result = Extract<VerificationStatusResponse['result'], { units: unknown }>
@@ -54,24 +55,24 @@ export default function Verify() {
     return (
       <Screen>
         <IconBadge icon={BadgeCheck} tone="brand" />
-        <Title sub={`ИИН ${result.iin_masked}. Согласие на обработку данных подписано вашей ЭЦП`}>{result.full_name}, личность подтверждена</Title>
+        <Title sub={t('ИИН {iin}. Согласие на обработку данных подписано вашей ЭЦП', { iin: result.iin_masked })}>{t('{name}, личность подтверждена', { name: result.full_name })}</Title>
         {result.units.length > 0 && (
           <Card>
-            <H2>Ваши помещения</H2>
+            <H2>{t('Ваши помещения')}</H2>
             {result.units.map((u) => (
               <View key={`${u.house_id}-${u.unit_number}`} style={{ flexDirection: 'row', gap: space.md, alignItems: 'flex-start' }}>
                 {OUTCOME[u.outcome].done
                   ? <CircleCheck size={20} strokeWidth={2.2} color={color.brand600} />
                   : <Clock size={20} strokeWidth={2.2} color={color.warning} />}
                 <View style={{ flex: 1 }}>
-                  <T weight="semibold">кв. {u.unit_number}</T>
-                  <T size={14} tone="ink2">{OUTCOME[u.outcome].text}</T>
+                  <T weight="semibold">{t('кв. {n}', { n: u.unit_number })}</T>
+                  <T size={14} tone="ink2">{t(OUTCOME[u.outcome].text)}</T>
                 </View>
               </View>
             ))}
           </Card>
         )}
-        <Button onPress={() => router.replace('/home')}>Готово</Button>
+        <Button onPress={() => router.replace('/home')}>{t('Готово')}</Button>
       </Screen>
     )
   }
@@ -79,23 +80,23 @@ export default function Verify() {
   return (
     <Screen>
       <IconBadge icon={ShieldCheck} tone="brand" />
-      <Title sub="Голосовать могут только собственники с подтверждённой личностью — так требует закон">Подтвердите личность через eGov mobile</Title>
+      <Title sub={t('Голосовать могут только собственники с подтверждённой личностью — так требует закон')}>{t('Подтвердите личность через eGov mobile')}</Title>
       <Card>
-        <Step n={1} text="Откроется eGov mobile с документом — согласием на обработку персональных данных" />
-        <Step n={2} text="Подпишите его своей ЭЦП. Мы получим ИИН и ФИО из сертификата, больше ничего" />
-        <Step n={3} text="Вернитесь сюда и нажмите «Готово»" />
+        <Step n={1} text={t('Откроется eGov mobile с документом — согласием на обработку персональных данных')} />
+        <Step n={2} text={t('Подпишите его своей ЭЦП. Мы получим ИИН и ФИО из сертификата, больше ничего')} />
+        <Step n={3} text={t('Вернитесь сюда и нажмите «Готово»')} />
       </Card>
       <ErrorNote>{start.error?.message ?? (!notSigned ? complete.error?.message : null)}</ErrorNote>
-      {notSigned && <Card tone="warning"><T size={14}>Подпись ещё не пришла. Подпишите документ в eGov mobile и нажмите «Готово» снова</T></Card>}
+      {notSigned && <Card tone="warning"><T size={14}>{t('Подпись ещё не пришла. Подпишите документ в eGov mobile и нажмите «Готово» снова')}</T></Card>}
       {started ? (
         <View style={{ gap: space.sm }}>
-          <Button loading={complete.isPending} onPress={() => complete.mutate()}>Готово, документ подписан</Button>
-          <Button variant="soft" icon={ExternalLink} onPress={() => openEgov(started.deeplink)}>Открыть eGov mobile снова</Button>
+          <Button loading={complete.isPending} onPress={() => complete.mutate()}>{t('Готово, документ подписан')}</Button>
+          <Button variant="soft" icon={ExternalLink} onPress={() => openEgov(started.deeplink)}>{t('Открыть eGov mobile снова')}</Button>
         </View>
       ) : (
-        <Button icon={ExternalLink} loading={start.isPending} onPress={() => start.mutate()}>Открыть eGov mobile</Button>
+        <Button icon={ExternalLink} loading={start.isPending} onPress={() => start.mutate()}>{t('Открыть eGov mobile')}</Button>
       )}
-      <Button variant="ghost" onPress={() => router.replace('/home')}>Сделаю позже</Button>
+      <Button variant="ghost" onPress={() => router.replace('/home')}>{t('Сделаю позже')}</Button>
     </Screen>
   )
 }

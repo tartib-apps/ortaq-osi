@@ -9,6 +9,7 @@ import { useOutbox } from '../../lib/outbox'
 import { useHouse } from '../../lib/session'
 import { color, radius, space, TAB_BAR_SPACE } from '../../theme'
 import { Card, Empty, ErrorNote, Screen, Skeleton, T, Tag, Title } from '../../ui/kit'
+import { t } from '../../lib/i18n'
 
 export type WorkerTask = {
   id: string; title: string; description: string | null; status: string; priority: string; due_at: string | null; requires_photo: boolean; recurring: boolean
@@ -20,20 +21,20 @@ function isToday(iso: string | null) {
   return !!iso && new Date(iso).toDateString() === new Date().toDateString()
 }
 
-function TaskCard({ t, pending }: { t: WorkerTask; pending: boolean }) {
+function TaskCard({ t: task, pending }: { t: WorkerTask; pending: boolean }) {
   return (
-    <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/task/[id]', params: { id: t.id } })}
+    <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/task/[id]', params: { id: task.id } })}
       style={({ pressed }) => ({ borderRadius: radius.lg, backgroundColor: pressed ? color.surface2 : color.surface, padding: space.lg, flexDirection: 'row', alignItems: 'center', gap: space.md })}>
       <View style={{ flex: 1, gap: 6 }}>
-        <T weight="semibold" size={16}>{t.title}</T>
-        {t.request && <T size={14} tone="ink2">{t.request.location_label} · заявка №{t.request.number}</T>}
+        <T weight="semibold" size={16}>{task.title}</T>
+        {task.request && <T size={14} tone="ink2">{task.request.location_label} · {t('заявка №{n}', { n: task.request.number })}</T>}
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-          {t.priority === 'CRITICAL' && <Tag tone="warn">срочно</Tag>}
-          {t.due_at && <Tag tone="mute">до {when(t.due_at)}</Tag>}
-          {t.requires_photo && <Tag tone="mute">📷 нужно фото</Tag>}
-          {t.recurring && <Tag tone="mute">по расписанию</Tag>}
-          {(t.status === 'REJECTED' || (t.last_completion?.rejection_reason && t.status === 'IN_PROGRESS')) && <Tag tone="warn">вернули на доработку</Tag>}
-          {pending ? <Tag tone="warn">ждёт сети</Tag> : t.status === 'SUBMITTED' ? <Tag tone="brand">{TASK_STATUS.SUBMITTED}</Tag> : null}
+          {task.priority === 'CRITICAL' && <Tag tone="warn">{t('срочно')}</Tag>}
+          {task.due_at && <Tag tone="mute">{t('до {date}', { date: when(task.due_at) })}</Tag>}
+          {task.requires_photo && <Tag tone="mute">{t('📷 нужно фото')}</Tag>}
+          {task.recurring && <Tag tone="mute">{t('по расписанию')}</Tag>}
+          {(task.status === 'REJECTED' || (task.last_completion?.rejection_reason && task.status === 'IN_PROGRESS')) && <Tag tone="warn">{t('вернули на доработку')}</Tag>}
+          {pending ? <Tag tone="warn">{t('ждёт сети')}</Tag> : task.status === 'SUBMITTED' ? <Tag tone="brand">{TASK_STATUS.SUBMITTED}</Tag> : null}
         </View>
       </View>
       <ChevronRight size={18} color={color.ink3} />
@@ -61,29 +62,29 @@ export default function Tasks() {
 
   return (
     <Screen bottomInset={TAB_BAR_SPACE} refreshing={q.isRefetching} onRefresh={() => void q.refetch()}>
-      <Title sub={house?.display_name}>Задачи</Title>
+      <Title sub={house?.display_name}>{t('Задачи')}</Title>
       {outbox.length > 0 && (
         <Card tone="warning" style={{ flexDirection: 'row', alignItems: 'center' }}>
           <CloudOff size={20} color={color.warning} />
           <View style={{ flex: 1 }}>
-            <T weight="semibold">Ждут отправки: {outbox.length}</T>
-            <T size={13.5} tone="ink2">Отметки и фото уйдут сами, как только появится связь</T>
+            <T weight="semibold">{t('Ждут отправки: {n}', { n: outbox.length })}</T>
+            <T size={13.5} tone="ink2">{t('Отметки и фото уйдут сами, как только появится связь')}</T>
           </View>
         </Card>
       )}
       {q.isPending && <Skeleton rows={3} height={96} />}
-      <ErrorNote>{q.isError && !q.data ? 'Нет связи — показываем то, что было загружено раньше' : null}</ErrorNote>
-      {q.data && active.length === 0 && waiting.length === 0 && <Empty icon={ListTodo} title="Задач нет" text="Когда председатель назначит работу, она появится здесь и придёт уведомлением." />}
+      <ErrorNote>{q.isError && !q.data ? t('Нет связи — показываем то, что было загружено раньше') : null}</ErrorNote>
+      {q.data && active.length === 0 && waiting.length === 0 && <Empty icon={ListTodo} title={t('Задач нет')} text={t('Когда председатель назначит работу, она появится здесь и придёт уведомлением.')} />}
       {groups.filter((g) => g.items.length > 0).map((g) => (
         <View key={g.title} style={{ gap: space.sm }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
             {g.title === 'Рутина по расписанию' && <Repeat size={15} color={color.ink2} />}
-            <T weight="semibold" tone="ink2">{g.title}</T>
+            <T weight="semibold" tone="ink2">{t(g.title)}</T>
           </View>
           {g.items.map((t) => <TaskCard key={t.id} t={t} pending={false} />)}
         </View>
       ))}
-      {waiting.length > 0 && <T weight="semibold" tone="ink2">На проверке у председателя</T>}
+      {waiting.length > 0 && <T weight="semibold" tone="ink2">{t('На проверке у председателя')}</T>}
       {waiting.map((t) => <TaskCard key={t.id} t={t} pending={pendingIds.has(t.id)} />)}
     </Screen>
   )

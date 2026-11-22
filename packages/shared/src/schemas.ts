@@ -56,8 +56,13 @@ export type MeResponse = {
   phone: string | null
   full_name: string
   is_platform_admin: boolean
+  /** Язык интерфейса: русский или казахский. Хранится на сервере — одинаков в вебе и приложении */
+  locale: Locale
   memberships: MembershipView[]
 }
+
+export const LOCALES = ['ru', 'kk'] as const
+export type Locale = (typeof LOCALES)[number]
 
 /* ───────── админ-панель ───────── */
 
@@ -192,7 +197,8 @@ export type OtpRequestBody = z.input<typeof otpRequestBody>
 export const otpVerifyBody = z.object({ phone, code: z.string().trim().regex(/^\d{6}$/, 'Код из 6 цифр') })
 export type OtpVerifyBody = z.input<typeof otpVerifyBody>
 
-export const updateMeBody = z.object({ full_name: trimmed(3, 200) })
+export const updateMeBody = z.object({ full_name: trimmed(3, 200).optional(), locale: z.enum(['ru', 'kk']).optional() })
+  .refine((b) => b.full_name !== undefined || b.locale !== undefined, 'Нечего менять')
 export type UpdateMeBody = z.infer<typeof updateMeBody>
 
 /** Регистрация в доме по ссылке: дом зашит в токен, жилец выбирает своё помещение */

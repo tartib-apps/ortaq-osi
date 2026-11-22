@@ -14,6 +14,7 @@ import { useHouse, useMe } from '../../lib/session'
 import { color, radius, space } from '../../theme'
 import { Button, Card, CheckRow, ErrorNote, H2, Screen, Segmented, Skeleton, T, Tag, Title } from '../../ui/kit'
 import { left, m2, pct, VOTE_STATUS } from '../../ui/votes'
+import { t } from '../../lib/i18n'
 
 type Cast = { status: 'CAST'; unit_number: string; cast_at: string; area: number; weight_percent: number }
 
@@ -33,22 +34,22 @@ export default function VoteScreen() {
   if (!house || q.isPending) return <Screen><Skeleton rows={6} /></Screen>
   if (!q.data) return <Screen><ErrorNote>{q.error?.message}</ErrorNote></Screen>
   const v = q.data
-  const t = v.turnout
+  const turnout = v.turnout
   return (
     <Screen refreshing={q.isRefetching} onRefresh={() => void q.refetch()}>
-      <View style={{ alignItems: 'flex-start' }}><Button variant="soft" icon={ArrowLeft} onPress={() => (router.canGoBack() ? router.back() : router.replace('/home'))}>Назад</Button></View>
-      <Title sub={DECISION_LABEL[v.decision_type]}>{v.title}</Title>
+      <View style={{ alignItems: 'flex-start' }}><Button variant="soft" icon={ArrowLeft} onPress={() => (router.canGoBack() ? router.back() : router.replace('/home'))}>{t('Назад')}</Button></View>
+      <Title sub={t(DECISION_LABEL[v.decision_type])}>{v.title}</Title>
 
-      {v.status === 'NOTICE_SENT' && <Card><T>Голосование начнётся {when(v.starts_at!)} и продлится до {when(v.ends_at!)}</T></Card>}
-      {v.status === 'CANCELLED' && <Card tone="warning"><T>Голосование отменено. Причина: {v.cancel_reason}</T></Card>}
-      {t && (
+      {v.status === 'NOTICE_SENT' && <Card><T>{t('Голосование начнётся {start} и продлится до {end}', { start: when(v.starts_at!), end: when(v.ends_at!) })}</T></Card>}
+      {v.status === 'CANCELLED' && <Card tone="warning"><T>{t('Голосование отменено. Причина: {reason}', { reason: v.cancel_reason ?? '' })}</T></Card>}
+      {turnout && (
         <Card>
-          <T size={13.5} tone="ink2">{v.status === 'ACTIVE' ? `До окончания: ${left(v.ends_at!)}` : VOTE_STATUS[v.status]}</T>
-          <T size={22} weight="display">Проголосовало {pct(t.percent)}</T>
+          <T size={13.5} tone="ink2">{v.status === 'ACTIVE' ? t('До окончания: {left}', { left: left(v.ends_at!) }) : VOTE_STATUS[v.status]}</T>
+          <T size={22} weight="display">{t('Проголосовало {pct}', { pct: pct(turnout.percent) })}</T>
           <View style={{ height: 10, borderRadius: radius.pill, backgroundColor: color.surface2, overflow: 'hidden' }}>
-            <View style={{ width: `${Math.min(100, t.percent)}%`, height: '100%', backgroundColor: t.quorum_reached ? color.brand600 : color.warning }} />
+            <View style={{ width: `${Math.min(100, turnout.percent)}%`, height: '100%', backgroundColor: turnout.quorum_reached ? color.brand600 : color.warning }} />
           </View>
-          <T size={13.5} tone="ink2">{t.quorum_reached ? 'Кворум есть' : 'Для кворума нужно больше 50% площади дома'} · {t.cast_units} из {t.total_units} помещений</T>
+          <T size={13.5} tone="ink2">{turnout.quorum_reached ? t('Кворум есть') : t('Для кворума нужно больше 50% площади дома')} · {t('{cast} из {total} помещений', { cast: turnout.cast_units, total: turnout.total_units })}</T>
         </Card>
       )}
 
@@ -56,7 +57,7 @@ export default function VoteScreen() {
       {v.materials.length > 0 && <Materials houseId={house.id} vote={v} />}
       <View style={{ flexDirection: 'row', gap: space.sm, alignItems: 'center' }}>
         <Scale size={18} color={color.brand700} />
-        <T size={14} tone="brand" style={{ flex: 1 }}>Требуется {THRESHOLD_LABEL[v.threshold]} от участвующих по площади ({DECISION_LABEL[v.decision_type].toLowerCase()})</T>
+        <T size={14} tone="brand" style={{ flex: 1 }}>{t('Требуется {threshold} от участвующих по площади ({decision})', { threshold: t(THRESHOLD_LABEL[v.threshold]), decision: t(DECISION_LABEL[v.decision_type]).toLowerCase() })}</T>
       </View>
 
       {v.status === 'ACTIVE' ? <Ballot houseId={house.id} vote={v} /> : <Agenda vote={v} />}
@@ -70,10 +71,10 @@ function Materials({ houseId, vote }: { houseId: string; vote: VoteView }) {
   const open = useMutation({ mutationFn: async (fileId: string) => openUrl((await api<{ url: string }>(`/houses/${houseId}/files/${fileId}/download-url`)).url) })
   return (
     <View style={{ gap: space.sm }}>
-      <H2>Материалы</H2>
+      <H2>{t('Материалы')}</H2>
       {vote.materials.map((m, i) => (
         <Button key={m.id} variant="soft" icon={Paperclip} loading={open.isPending && open.variables === m.id} onPress={() => open.mutate(m.id)}>
-          {`Материал ${i + 1} · ${m.mime_type === 'application/pdf' ? 'PDF' : 'фото'}`}
+          {`${t('Материал {n}', { n: i + 1 })} · ${m.mime_type === 'application/pdf' ? 'PDF' : t('фото')}`}
         </Button>
       ))}
       <ErrorNote>{open.error?.message}</ErrorNote>
@@ -86,7 +87,7 @@ function Agenda({ vote }: { vote: VoteView }) {
     <View style={{ gap: space.md }}>
       {vote.questions.map((q) => (
         <Card key={q.id}>
-          <T size={13.5} tone="ink2">Вопрос {q.order}</T>
+          <T size={13.5} tone="ink2">{t('Вопрос {n}', { n: q.order })}</T>
           <T weight="semibold">{q.text}</T>
           <T size={14} tone="ink2">{q.options.map((o) => o.text).join(' · ')}</T>
         </Card>
@@ -132,9 +133,9 @@ function Ballot({ houseId, vote }: { houseId: string; vote: VoteView }) {
     return (
       <Card tone="brand">
         <BadgeCheck size={28} color={color.brand600} />
-        <H2>Ваш голос учтён</H2>
-        <T>{when(cast.cast_at)} · помещение №{cast.unit_number}</T>
-        <T tone="ink2">Вес голоса: {pct(cast.weight_percent)} (по площади {m2(cast.area)}). Подписано ЭЦП — изменить голос нельзя</T>
+        <H2>{t('Ваш голос учтён')}</H2>
+        <T>{when(cast.cast_at)} · {t('помещение №{n}', { n: cast.unit_number })}</T>
+        <T tone="ink2">{t('Вес голоса: {pct} (по площади {area}). Подписано ЭЦП — изменить голос нельзя', { pct: pct(cast.weight_percent), area: m2(cast.area) })}</T>
       </Card>
     )
   }
@@ -143,22 +144,22 @@ function Ballot({ houseId, vote }: { houseId: string; vote: VoteView }) {
     <View style={{ gap: space.md }}>
       {done.map((u) => (
         <Card key={u.unit_id} tone="brand">
-          <T weight="semibold">Голос за помещение №{u.number} учтён</T>
-          <T size={14} tone="ink2">{when(u.ballot!.cast_at)} · вес {pct(u.weight_percent)} (по площади {m2(u.area)}){u.ballot!.channel === 'PAPER' ? ' · бумажный бюллетень' : ' · подписано ЭЦП'}</T>
+          <T weight="semibold">{t('Голос за помещение №{n} учтён', { n: u.number })}</T>
+          <T size={14} tone="ink2">{when(u.ballot!.cast_at)} · {t('вес {pct} (по площади {area})', { pct: pct(u.weight_percent), area: m2(u.area) })}{u.ballot!.channel === 'PAPER' ? ` · ${t('бумажный бюллетень')}` : ` · ${t('подписано ЭЦП')}`}</T>
         </Card>
       ))}
       {vote.my_units.filter((u) => !u.can_vote && !u.ballot).map((u) => (
-        <Card key={u.unit_id}><T size={14} tone="ink2">Помещение №{u.number}: {u.reason}</T></Card>
+        <Card key={u.unit_id}><T size={14} tone="ink2">{t('Помещение №{n}: {reason}', { n: u.number, reason: u.reason ?? '' })}</T></Card>
       ))}
-      {vote.my_units.length === 0 && <Card><T tone="ink2">Голосовать может собственник помещения с подтверждённой собственностью. Вы видите повестку и ход голосования</T></Card>}
+      {vote.my_units.length === 0 && <Card><T tone="ink2">{t('Голосовать может собственник помещения с подтверждённой собственностью. Вы видите повестку и ход голосования')}</T></Card>}
 
       {!unit ? <Agenda vote={vote} /> : (
         <>
-          {open.length > 1 && <Segmented label="Помещение" value={unitId} onChange={setUnitId} options={open.map((u) => ({ v: u.unit_id, label: `№${u.number}` }))} />}
-          <T size={14} tone="ink2">Ваш голос весит {pct(unit.weight_percent)} — по площади помещения №{unit.number}, {m2(unit.area)}. Так считает закон: вес голоса пропорционален площади</T>
+          {open.length > 1 && <Segmented label={t('Помещение')} value={unitId} onChange={setUnitId} options={open.map((u) => ({ v: u.unit_id, label: `№${u.number}` }))} />}
+          <T size={14} tone="ink2">{t('Ваш голос весит {pct} — по площади помещения №{n}, {area}. Так считает закон: вес голоса пропорционален площади', { pct: pct(unit.weight_percent), n: unit.number, area: m2(unit.area) })}</T>
           {vote.questions.map((q) => (
             <Card key={q.id}>
-              <T size={13.5} tone="ink2">Вопрос {q.order}{q.type === 'MULTI_CHOICE' ? ' · можно несколько вариантов' : ''}</T>
+              <T size={13.5} tone="ink2">{t('Вопрос {n}', { n: q.order })}{q.type === 'MULTI_CHOICE' ? ` · ${t('можно несколько вариантов')}` : ''}</T>
               <T weight="semibold">{q.text}</T>
               {q.options.map((o) => {
                 const on = (answers[q.id] ?? []).includes(o.id)
@@ -179,15 +180,15 @@ function Ballot({ houseId, vote }: { houseId: string; vote: VoteView }) {
           <ErrorNote>{start.error?.message ?? (complete.error instanceof ApiError ? complete.error.message : null)}</ErrorNote>
           {params.s ? (
             <Card>
-              <T>Подпишите бюллетень в eGov mobile своей ЭЦП и вернитесь сюда</T>
-              {complete.data?.status === 'PENDING' && <T size={14} tone="warning">Подпись ещё не получена. Завершите подписание в eGov mobile</T>}
-              <Button loading={complete.isPending} onPress={() => complete.mutate()}>Готово, бюллетень подписан</Button>
-              <Button variant="soft" icon={ExternalLink} onPress={() => openEgov(params.link!)}>Открыть eGov mobile снова</Button>
+              <T>{t('Подпишите бюллетень в eGov mobile своей ЭЦП и вернитесь сюда')}</T>
+              {complete.data?.status === 'PENDING' && <T size={14} tone="warning">{t('Подпись ещё не получена. Завершите подписание в eGov mobile')}</T>}
+              <Button loading={complete.isPending} onPress={() => complete.mutate()}>{t('Готово, бюллетень подписан')}</Button>
+              <Button variant="soft" icon={ExternalLink} onPress={() => openEgov(params.link!)}>{t('Открыть eGov mobile снова')}</Button>
             </Card>
           ) : (
-            <Button icon={FileSignature} loading={start.isPending} disabled={!answered} onPress={() => start.mutate()}>Подписать и отправить</Button>
+            <Button icon={FileSignature} loading={start.isPending} disabled={!answered} onPress={() => start.mutate()}>{t('Подписать и отправить')}</Button>
           )}
-          <T size={12.5} tone="ink3">Бюллетень подписывается ЭЦП и юридически значим: изменить голос после подписи нельзя</T>
+          <T size={12.5} tone="ink3">{t('Бюллетень подписывается ЭЦП и юридически значим: изменить голос после подписи нельзя')}</T>
         </>
       )}
     </View>
@@ -199,7 +200,7 @@ function Results({ houseId, vote }: { houseId: string; vote: VoteView }) {
   if (!q.data || q.data.hidden) return null
   return (
     <View style={{ gap: space.md }}>
-      <H2>{vote.status === 'ACTIVE' ? 'Ход голосования' : 'Итоги'}</H2>
+      <H2>{vote.status === 'ACTIVE' ? t('Ход голосования') : t('Итоги')}</H2>
       {q.data.questions.map((r) => (
         <Card key={r.question_id}>
           <T weight="semibold">{r.order}. {r.text}</T>
@@ -216,7 +217,7 @@ function Results({ houseId, vote }: { houseId: string; vote: VoteView }) {
           ))}
           {vote.status === 'CLOSED' && (
             <View style={{ flexDirection: 'row' }}>
-              <Tag tone={r.adopted ? 'brand' : r.adopted === null ? 'mute' : 'warn'}>{r.adopted ? 'Решение принято' : r.adopted === null ? 'Нет кворума' : 'Решение не принято'}</Tag>
+              <Tag tone={r.adopted ? 'brand' : r.adopted === null ? 'mute' : 'warn'}>{r.adopted ? t('Решение принято') : r.adopted === null ? t('Нет кворума') : t('Решение не принято')}</Tag>
             </View>
           )}
         </Card>
@@ -245,21 +246,21 @@ function Protocol({ houseId, vote }: { houseId: string; vote: VoteView }) {
   const secretary = p.secretary?.user_id === me.data?.id
   return (
     <Card>
-      <H2>Протокол №{p.number}</H2>
+      <H2>{t('Протокол №{n}', { n: p.number })}</H2>
       <T size={14} tone="ink2">
-        {p.status === 'PUBLISHED' ? `Опубликован ${when(p.published_at!)}` : 'Ждёт подписей председателя и секретаря'}
-        {p.content.held ? `. Кворум ${pct(p.content.quorum.percent)} — собрание правомочно` : `. Кворум ${pct(p.content.quorum.percent)} — собрание не состоялось`}
+        {p.status === 'PUBLISHED' ? t('Опубликован {date}', { date: when(p.published_at!) }) : t('Ждёт подписей председателя и секретаря')}
+        {p.content.held ? `. ${t('Кворум {pct} — собрание правомочно', { pct: pct(p.content.quorum.percent) })}` : `. ${t('Кворум {pct} — собрание не состоялось', { pct: pct(p.content.quorum.percent) })}`}
       </T>
-      <T size={14}>Председатель: {p.signatures.chairman ? `${p.signatures.chairman.name}, ЭЦП` : 'не подписано'}</T>
-      <T size={14}>Секретарь: {p.signatures.secretary ? `${p.signatures.secretary.name}, ЭЦП` : 'не подписано'}</T>
+      <T size={14}>{p.signatures.chairman ? t('Председатель: {name}, ЭЦП', { name: p.signatures.chairman.name }) : t('Председатель: не подписано')}</T>
+      <T size={14}>{p.signatures.secretary ? t('Секретарь: {name}, ЭЦП', { name: p.signatures.secretary.name }) : t('Секретарь: не подписано')}</T>
       {secretary && p.status === 'AWAITING_SIGNATURES' && !p.signatures.secretary && (
         started ? (
           <>
-            {complete.data && !('id' in complete.data) && <T size={14} tone="warning">Подпись ещё не получена</T>}
-            <Button loading={complete.isPending} onPress={() => complete.mutate()}>Готово, протокол подписан</Button>
-            <Button variant="soft" icon={ExternalLink} onPress={() => openEgov(started.deeplink)}>Открыть eGov mobile снова</Button>
+            {complete.data && !('id' in complete.data) && <T size={14} tone="warning">{t('Подпись ещё не получена')}</T>}
+            <Button loading={complete.isPending} onPress={() => complete.mutate()}>{t('Готово, протокол подписан')}</Button>
+            <Button variant="soft" icon={ExternalLink} onPress={() => openEgov(started.deeplink)}>{t('Открыть eGov mobile снова')}</Button>
           </>
-        ) : <Button icon={FileSignature} loading={start.isPending} onPress={() => start.mutate()}>Подписать как секретарь</Button>
+        ) : <Button icon={FileSignature} loading={start.isPending} onPress={() => start.mutate()}>{t('Подписать как секретарь')}</Button>
       )}
       <ErrorNote>{(start.error ?? complete.error)?.message}</ErrorNote>
     </Card>

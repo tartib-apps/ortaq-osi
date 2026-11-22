@@ -10,7 +10,8 @@
     "lint": "turbo run lint",
     "test": "turbo run test",
     "db:up": "docker compose up -d --wait",
-    "db:down": "docker compose down"
+    "db:down": "docker compose down",
+    "i18n:check": "node scripts/i18n-check.mjs"
   },
   "devDependencies": {
     "turbo": "2.11.7",

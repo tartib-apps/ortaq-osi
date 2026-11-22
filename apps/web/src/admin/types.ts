@@ -1,4 +1,5 @@
 import type { ReadinessResponse } from '@ortaq/shared'
+import { tr } from '../shared/i18n'
 
 /* Ответы админ-API: apps/api/src/modules/admin/admin.service.ts */
 
@@ -36,7 +37,7 @@ export type AuditItem = {
 export type ChainCheck = { valid: boolean; checked: number; broken_at: string | null }
 
 /** Человеческие подписи событий журнала */
-export const ACTION_LABELS: Record<string, string> = {
+export const ACTION_LABELS: Record<string, string> = tr({
   'auth.login': 'Вход',
   'auth.login_failed': 'Неудачный вход',
   'auth.password_set': 'Задан пароль',
@@ -56,12 +57,12 @@ export const ACTION_LABELS: Record<string, string> = {
   'invite.resolve': 'Открыта ссылка-приглашение',
   'join_request.approve': 'Заявка на вступление одобрена',
   'join_request.reject': 'Заявка на вступление отклонена',
-}
+})
 
-export const ROLE_LABELS: Record<string, string> = {
+export const ROLE_LABELS: Record<string, string> = tr({
   PLATFORM_ADMIN: 'админ платформы',
   CHAIRMAN: 'председатель',
   ACCOUNTANT: 'бухгалтер',
   WORKER: 'работник',
   RESIDENT: 'жилец',
-}
+})

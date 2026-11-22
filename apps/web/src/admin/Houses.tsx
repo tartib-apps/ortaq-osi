@@ -7,6 +7,7 @@ import type { CreateHouseBody } from '@ortaq/shared'
 import { api, ApiError } from '../shared/api/client'
 import { ease } from '../shared/lib/cn'
 import { Btn, Card, CardHead, Cell, Empty, ErrorNote, Field, Input, PageHead, Row, Select, Skeleton, Table, Tag, Td } from '../shared/ui/kit'
+import { t } from '../shared/i18n'
 import type { HouseRow, Organization } from './types'
 
 const num = (v: string) => v.replace(/\D/g, '').slice(0, 4)
@@ -46,37 +47,37 @@ function CreateHouse({ onClose }: { onClose: () => void }) {
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.35, ease }}>
       <Card>
-        <CardHead icon={Building} title="Новый дом" sub="Помещения создадутся сразу, по подъездам поровну. Разбивку потом можно поправить"
-          aside={<button onClick={onClose} aria-label="Закрыть" className="grid size-10 place-items-center rounded-full text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink"><X size={18} /></button>} />
+        <CardHead icon={Building} title={t('Новый дом')} sub={t('Помещения создадутся сразу, по подъездам поровну. Разбивку потом можно поправить')}
+          aside={<button onClick={onClose} aria-label={t('Закрыть')} className="grid size-10 place-items-center rounded-full text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink"><X size={18} /></button>} />
         <form onSubmit={submit} className="grid gap-4 md:grid-cols-2">
-          <Field label="Организация">
-            {(id) => <Select id={id} value={org} onChange={setOrg} placeholder="Выберите ОСИ" options={active.map((o) => ({ v: o.id, label: o.name }))} />}
+          <Field label={t('Организация')}>
+            {(id) => <Select id={id} value={org} onChange={setOrg} placeholder={t('Выберите ОСИ')} options={active.map((o) => ({ v: o.id, label: o.name }))} />}
           </Field>
-          <Field label="Как показывать жильцам" hint="Например, «ЖК Асыл Арман, блок 3»" error={fields.display_name}>
+          <Field label={t('Как показывать жильцам')} hint={t('Например, «ЖК Асыл Арман, блок 3»')} error={fields.display_name}>
             {(id, d) => <Input id={id} describedBy={d} value={display} onChange={setDisplay} invalid={!!fields.display_name} />}
           </Field>
           <div className="md:col-span-2">
-            <Field label="Адрес" error={fields.address}>
-              {(id, d) => <Input id={id} describedBy={d} value={address} onChange={setAddress} placeholder="г. Алматы, ул. Абая 150" invalid={!!fields.address} />}
+            <Field label={t('Адрес')} error={fields.address}>
+              {(id, d) => <Input id={id} describedBy={d} value={address} onChange={setAddress} placeholder={t('г. Алматы, ул. Абая 150')} invalid={!!fields.address} />}
             </Field>
           </div>
           <div className="grid grid-cols-3 gap-4 md:col-span-2">
-            <Field label="Подъездов" error={fields.entrance_count}>
+            <Field label={t('Подъездов')} error={fields.entrance_count}>
               {(id, d) => <Input id={id} describedBy={d} value={entrances} onChange={(v) => setEntrances(num(v))} inputMode="numeric" className="nums" />}
             </Field>
-            <Field label="Квартир" error={fields.unit_count}>
+            <Field label={t('Квартир')} error={fields.unit_count}>
               {(id, d) => <Input id={id} describedBy={d} value={units} onChange={(v) => setUnits(num(v))} inputMode="numeric" className="nums" />}
             </Field>
-            <Field label="Этажей" hint="Необязательно">
+            <Field label={t('Этажей')} hint={t('Необязательно')}>
               {(id, d) => <Input id={id} describedBy={d} value={floors} onChange={(v) => setFloors(num(v))} inputMode="numeric" className="nums" />}
             </Field>
           </div>
-          <p className="text-[13.5px] text-ink-2 md:col-span-2">Площади помещений здесь не вводятся: их знает председатель из техпаспорта. Пока площадей нет, голосования в доме недоступны.</p>
+          <p className="text-[13.5px] text-ink-2 md:col-span-2">{t('Площади помещений здесь не вводятся: их знает председатель из техпаспорта. Пока площадей нет, голосования в доме недоступны.')}</p>
           <div className="flex flex-col gap-3 md:col-span-2">
             <ErrorNote>{create.error && !Object.keys(fields).length ? create.error.message : null}</ErrorNote>
             <div className="flex gap-2">
-              <Btn type="submit" loading={create.isPending} disabled={!org || address.length < 5 || display.length < 2 || !entrances || !units}>Создать дом</Btn>
-              <Btn variant="soft" onClick={onClose}>Отмена</Btn>
+              <Btn type="submit" loading={create.isPending} disabled={!org || address.length < 5 || display.length < 2 || !entrances || !units}>{t('Создать дом')}</Btn>
+              <Btn variant="soft" onClick={onClose}>{t('Отмена')}</Btn>
             </div>
           </div>
         </form>
@@ -86,11 +87,11 @@ function CreateHouse({ onClose }: { onClose: () => void }) {
 }
 
 function ChairmanState({ h }: { h: HouseRow }) {
-  if (!h.chairman) return <Tag tone="warn">Не назначен</Tag>
+  if (!h.chairman) return <Tag tone="warn">{t('Не назначен')}</Tag>
   return (
     <span className="flex flex-col items-end gap-1">
       <span className="text-[14px] text-ink">{h.chairman.full_name}</span>
-      {!h.chairman.activated && <span className="text-[12.5px] text-warning">ждём пароль и 2FA</span>}
+      {!h.chairman.activated && <span className="text-[12.5px] text-warning">{t('ждём пароль и 2FA')}</span>}
     </span>
   )
 }
@@ -103,25 +104,25 @@ export function Houses() {
   return (
     <>
       <PageHead
-        title="Дома"
-        sub="Подключение домов: помещения, председатель, готовность к голосованиям"
-        actions={!creating && <Btn icon={Plus} onClick={() => setCreating(true)}>Добавить дом</Btn>}
+        title={t('Дома')}
+        sub={t('Подключение домов: помещения, председатель, готовность к голосованиям')}
+        actions={!creating && <Btn icon={Plus} onClick={() => setCreating(true)}>{t('Добавить дом')}</Btn>}
       />
       <AnimatePresence>{creating && <CreateHouse onClose={() => setCreating(false)} />}</AnimatePresence>
       <Card>
         {q.isPending && <Skeleton rows={4} />}
         {q.isError && <ErrorNote>{q.error.message}</ErrorNote>}
         {q.data?.length === 0 && (
-          <Empty icon={Building} title="Домов пока нет" text="Сначала заведите организацию, затем добавьте дом и назначьте председателя." />
+          <Empty icon={Building} title={t('Домов пока нет')} text={t('Сначала заведите организацию, затем добавьте дом и назначьте председателя.')} />
         )}
         {q.data && q.data.length > 0 && (
-          <Table cols={[{ label: 'Дом' }, { label: 'Организация' }, { label: 'Помещения' }, { label: 'Голосования' }, { label: 'Председатель', right: true }]}>
+          <Table cols={[{ label: t('Дом') }, { label: t('Организация') }, { label: t('Помещения') }, { label: t('Голосования') }, { label: t('Председатель'), right: true }]}>
             {q.data.map((h) => (
               <Row key={h.id} onClick={() => navigate(`/admin/houses/${h.id}`)}>
                 <Td><Cell title={h.display_name} sub={h.address} /></Td>
                 <Td className="text-ink-2">{h.organization_name}</Td>
-                <Td><span className="nums">{h.units_total}</span> · {h.entrance_count} подъезд.</Td>
-                <Td>{h.is_voting_ready ? <Tag tone="brand">Доступны</Tag> : <Tag tone="mute">Нет площадей</Tag>}</Td>
+                <Td><span className="nums">{h.units_total}</span> · {t('{n} подъезд.', { n: h.entrance_count })}</Td>
+                <Td>{h.is_voting_ready ? <Tag tone="brand">{t('Доступны')}</Tag> : <Tag tone="mute">{t('Нет площадей')}</Tag>}</Td>
                 <Td right><ChairmanState h={h} /></Td>
               </Row>
             ))}

@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import type { LucideIcon } from 'lucide-react-native'
 import { Check, CircleAlert } from 'lucide-react-native'
 import { color, font, MAX_WIDTH, radius, space, TOUCH } from '../theme'
+import { t } from '../lib/i18n'
 
 /*
  * UI-кит приложения жильца. Правила те же, что в кабинете (CLAUDE.md): без рамок и теней,
@@ -140,7 +141,7 @@ export function Empty({ icon: Icon, title, text }: { icon: LucideIcon; title: st
 /** Скелет на время загрузки: та же форма, что у данных */
 export function Skeleton({ rows = 3, height = 64 }: { rows?: number; height?: number }) {
   return (
-    <View accessibilityLabel="Загрузка" style={{ gap: space.sm }}>
+    <View accessibilityLabel={t('Загрузка')} style={{ gap: space.sm }}>
       {Array.from({ length: rows }, (_, i) => <View key={i} style={{ height, borderRadius: radius.md, backgroundColor: color.surface3 }} />)}
     </View>
   )

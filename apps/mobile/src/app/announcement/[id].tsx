@@ -8,6 +8,7 @@ import { when } from '../../lib/format'
 import { useHouse } from '../../lib/session'
 import { color, space } from '../../theme'
 import { Button, Card, Empty, Screen, Skeleton, T, Title } from '../../ui/kit'
+import { t } from '../../lib/i18n'
 
 type Announcement = { id: string; title: string; body: string; pinned: boolean; published_at: string; is_read: boolean }
 
@@ -33,10 +34,10 @@ export default function AnnouncementScreen() {
   return (
     <Screen>
       <View style={{ alignItems: 'flex-start' }}>
-        <Button variant="soft" icon={ArrowLeft} onPress={() => (router.canGoBack() ? router.back() : router.replace('/home'))}>Назад</Button>
+        <Button variant="soft" icon={ArrowLeft} onPress={() => (router.canGoBack() ? router.back() : router.replace('/home'))}>{t('Назад')}</Button>
       </View>
       {feed.isPending && <Skeleton rows={3} />}
-      {feed.data && !a && <Empty icon={Pin} title="Объявление недоступно" text="Его удалили или оно адресовано не вам." />}
+      {feed.data && !a && <Empty icon={Pin} title={t('Объявление недоступно')} text={t('Его удалили или оно адресовано не вам.')} />}
       {a && (
         <>
           <Title sub={when(a.published_at)}>{a.title}</Title>
@@ -44,7 +45,7 @@ export default function AnnouncementScreen() {
           {a.pinned && (
             <View style={{ flexDirection: 'row', gap: space.sm, alignItems: 'center' }}>
               <Pin size={15} strokeWidth={2.2} color={color.brand700} />
-              <T size={13.5} tone="brand">Закреплено председателем</T>
+              <T size={13.5} tone="brand">{t('Закреплено председателем')}</T>
             </View>
           )}
         </>

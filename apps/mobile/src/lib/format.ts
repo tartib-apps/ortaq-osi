@@ -1,5 +1,8 @@
+import { getLocale, intlLocale, t } from './i18n'
 /** «1 жилец», «2 жильца», «5 жильцов» */
 export function plural(n: number, forms: [string, string, string]): string {
+  // В казахском после числа слово не склоняется
+  if (getLocale() === 'kk') return forms[0]
   const m10 = n % 10
   const m100 = n % 100
   if (m10 === 1 && m100 !== 11) return forms[0]
@@ -7,16 +10,16 @@ export function plural(n: number, forms: [string, string, string]): string {
   return forms[2]
 }
 
-const dateFmt = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long' })
-const timeFmt = new Intl.DateTimeFormat('ru-RU', { hour: '2-digit', minute: '2-digit' })
+const dateFmt = { format: (d: Date) => new Intl.DateTimeFormat(intlLocale(), { day: 'numeric', month: 'long' }).format(d) }
+const timeFmt = { format: (d: Date) => new Intl.DateTimeFormat(intlLocale(), { hour: '2-digit', minute: '2-digit' }).format(d) }
 
 /** «сегодня, 14:05», «вчера», «12 сентября» */
 export function when(iso: string): string {
   const d = new Date(iso)
   const today = new Date()
   const days = Math.floor((new Date(today.toDateString()).getTime() - new Date(d.toDateString()).getTime()) / 86_400_000)
-  if (days === 0) return `сегодня, ${timeFmt.format(d)}`
-  if (days === 1) return 'вчера'
+  if (days === 0) return t('сегодня, {time}', { time: timeFmt.format(d) })
+  if (days === 1) return t('вчера')
   return dateFmt.format(d)
 }
 

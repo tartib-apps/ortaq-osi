@@ -7,6 +7,7 @@ import { formatPhone } from '../lib/format'
 import { useSession } from '../lib/session'
 import { color, font, radius, space } from '../theme'
 import { Button, ErrorNote, Screen, T, Title } from '../ui/kit'
+import { t } from '../lib/i18n'
 
 const LENGTH = 6
 const RESEND_S = 60
@@ -23,8 +24,8 @@ export default function Code() {
   const [left, setLeft] = useState(RESEND_S)
 
   useEffect(() => {
-    const t = setInterval(() => setLeft((s) => Math.max(0, s - 1)), 1000)
-    return () => clearInterval(t)
+    const timer = setInterval(() => setLeft((s) => Math.max(0, s - 1)), 1000)
+    return () => clearInterval(timer)
   }, [])
 
   const verify = useMutation({
@@ -49,8 +50,8 @@ export default function Code() {
 
   return (
     <Screen>
-      <Title sub={`Отправили на ${formatPhone(phone)}`}>Код из SMS</Title>
-      <Pressable onPress={() => input.current?.focus()} accessibilityLabel="Поле для кода" style={styles.cells}>
+      <Title sub={t('Отправили на {phone}', { phone: formatPhone(phone) })}>{t('Код из SMS')}</Title>
+      <Pressable onPress={() => input.current?.focus()} accessibilityLabel={t('Поле для кода')} style={styles.cells}>
         {Array.from({ length: LENGTH }, (_, i) => (
           <View key={i} style={[styles.cell, i === code.length && styles.cellActive]}>
             <Text style={styles.digit}>{code[i] ?? ''}</Text>
@@ -65,17 +66,17 @@ export default function Code() {
           autoComplete="sms-otp"
           maxLength={LENGTH}
           autoFocus
-          accessibilityLabel="Код из SMS, 6 цифр"
+          accessibilityLabel={t('Код из SMS, 6 цифр')}
           style={styles.hidden}
         />
       </Pressable>
       <ErrorNote>{verify.error?.message ?? resend.error?.message}</ErrorNote>
-      {verify.isPending && <T tone="ink2">Проверяем…</T>}
+      {verify.isPending && <T tone="ink2">{t('Проверяем…')}</T>}
       <View style={{ gap: space.sm }}>
         <Button variant="soft" disabled={left > 0} loading={resend.isPending} onPress={() => resend.mutate()}>
-          {left > 0 ? `Отправить снова через ${left} с` : 'Отправить код снова'}
+          {left > 0 ? t('Отправить снова через {n} с', { n: left }) : t('Отправить код снова')}
         </Button>
-        <Button variant="ghost" onPress={() => router.back()}>Другой номер</Button>
+        <Button variant="ghost" onPress={() => router.back()}>{t('Другой номер')}</Button>
       </View>
     </Screen>
   )

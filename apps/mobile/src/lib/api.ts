@@ -1,3 +1,4 @@
+import { t } from './i18n'
 import { refreshStore } from './tokens'
 
 /**
@@ -14,13 +15,14 @@ export class ApiError extends Error {
     message: string,
     readonly details?: unknown,
   ) {
-    super(message)
+    // Сервер отвечает по-русски; известные сообщения показываем на языке интерфейса
+    super(t(message))
   }
 
   /** Ошибки полей из ответа 400: путь поля → сообщение */
   get fields(): Record<string, string> {
     const list = (this.details as { fields?: { path: string; message: string }[] } | undefined)?.fields ?? []
-    return Object.fromEntries(list.map((f) => [f.path, f.message]))
+    return Object.fromEntries(list.map((f) => [f.path, t(f.message)]))
   }
 }
 

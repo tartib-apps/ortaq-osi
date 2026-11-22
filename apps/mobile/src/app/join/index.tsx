@@ -7,6 +7,7 @@ import { api } from '../../lib/api'
 import { useSession } from '../../lib/session'
 import { color, radius, space } from '../../theme'
 import { Button, Card, ErrorNote, Field, H2, IconBadge, Screen, Segmented, Skeleton, T, Title } from '../../ui/kit'
+import { t } from '../../lib/i18n'
 
 type Found = { id: string; display_name: string; address: string }
 
@@ -28,14 +29,14 @@ export default function Join() {
 
   return (
     <Screen>
-      <Title sub="Ссылку присылает председатель в общий чат дома">Присоединитесь к своему дому</Title>
+      <Title sub={t('Ссылку присылает председатель в общий чат дома')}>{t('Присоединитесь к своему дому')}</Title>
       <Card>
-        <Field label="Ссылка-приглашение" value={link} onChangeText={setLink} autoCapitalize="none" autoCorrect={false}
-          placeholder="Вставьте ссылку из чата" error={link && !token ? 'Не похоже на ссылку Ortaq' : undefined} />
-        <Button icon={Link2} disabled={!token} onPress={() => router.push({ pathname: '/join/[token]', params: { token: token! } })}>Открыть приглашение</Button>
+        <Field label={t('Ссылка-приглашение')} value={link} onChangeText={setLink} autoCapitalize="none" autoCorrect={false}
+          placeholder={t('Вставьте ссылку из чата')} error={link && !token ? t('Не похоже на ссылку Ortaq') : undefined} />
+        <Button icon={Link2} disabled={!token} onPress={() => router.push({ pathname: '/join/[token]', params: { token: token! } })}>{t('Открыть приглашение')}</Button>
       </Card>
       <JoinRequest />
-      <Button variant="ghost" onPress={() => void signOut()}>Выйти</Button>
+      <Button variant="ghost" onPress={() => void signOut()}>{t('Выйти')}</Button>
     </Screen>
   )
 }
@@ -58,19 +59,19 @@ function JoinRequest() {
     return (
       <Card tone="brand">
         <IconBadge icon={Check} tone="brand" />
-        <H2>Заявка отправлена</H2>
-        <T tone="ink2">Председатель {house?.display_name} проверит её и подтвердит. Мы пришлём уведомление</T>
+        <H2>{t('Заявка отправлена')}</H2>
+        <T tone="ink2">{t('Председатель {house} проверит её и подтвердит. Мы пришлём уведомление', { house: house?.display_name ?? '' })}</T>
       </Card>
     )
   }
 
   return (
     <Card>
-      <H2>Нет ссылки?</H2>
-      <T size={14} tone="ink2">Найдите дом по адресу и отправьте заявку председателю</T>
+      <H2>{t('Нет ссылки?')}</H2>
+      <T size={14} tone="ink2">{t('Найдите дом по адресу и отправьте заявку председателю')}</T>
       {house ? (
         <>
-          <Pressable onPress={() => setHouse(null)} accessibilityRole="button" accessibilityLabel="Выбрать другой дом"
+          <Pressable onPress={() => setHouse(null)} accessibilityRole="button" accessibilityLabel={t('Выбрать другой дом')}
             style={{ flexDirection: 'row', gap: space.md, alignItems: 'center', borderRadius: radius.md, backgroundColor: color.brand50, padding: space.md }}>
             <Building2 size={20} strokeWidth={2} color={color.brand700} />
             <View style={{ flex: 1 }}>
@@ -78,14 +79,14 @@ function JoinRequest() {
               <T size={13} tone="ink2">{house.address}</T>
             </View>
           </Pressable>
-          <Field label="Номер помещения" value={unit} onChangeText={setUnit} placeholder="45" />
-          <Segmented label="Кем вы являетесь" value={relation} onChange={setRelation} options={[{ v: 'OWNER', label: 'Собственник' }, { v: 'TENANT', label: 'Наниматель' }]} />
+          <Field label={t('Номер помещения')} value={unit} onChangeText={setUnit} placeholder="45" />
+          <Segmented label={t('Кем вы являетесь')} value={relation} onChange={setRelation} options={[{ v: 'OWNER', label: t('Собственник') }, { v: 'TENANT', label: t('Наниматель') }]} />
           <ErrorNote>{send.error?.message}</ErrorNote>
-          <Button icon={Send} loading={send.isPending} disabled={!unit.trim()} onPress={() => send.mutate()}>Отправить заявку</Button>
+          <Button icon={Send} loading={send.isPending} disabled={!unit.trim()} onPress={() => send.mutate()}>{t('Отправить заявку')}</Button>
         </>
       ) : (
         <>
-          <Field label="Адрес или название ЖК" value={q} onChangeText={setQ} placeholder="Асыл Арман" />
+          <Field label={t('Адрес или название ЖК')} value={q} onChangeText={setQ} placeholder={t('Асыл Арман')} />
           {search.isFetching && <Skeleton rows={2} height={56} />}
           {search.data?.map((h) => (
             <Pressable key={h.id} onPress={() => setHouse(h)} accessibilityRole="button"
@@ -94,7 +95,7 @@ function JoinRequest() {
               <T size={13} tone="ink2">{h.address}</T>
             </Pressable>
           ))}
-          {search.data?.length === 0 && <T tone="ink2">Ничего не нашли. Попробуйте улицу без номера дома</T>}
+          {search.data?.length === 0 && <T tone="ink2">{t('Ничего не нашли. Попробуйте улицу без номера дома')}</T>}
           <ErrorNote>{search.error?.message}</ErrorNote>
         </>
       )}

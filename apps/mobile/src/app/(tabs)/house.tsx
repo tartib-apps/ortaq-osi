@@ -8,18 +8,19 @@ import { formatPhone } from '../../lib/format'
 import { useHouse } from '../../lib/session'
 import { color, radius, space, TAB_BAR_SPACE, TOUCH } from '../../theme'
 import { Card, Empty, ErrorNote, H2, Screen, Skeleton, T, Tag, Title } from '../../ui/kit'
+import { t, tr } from '../../lib/i18n'
 
 type Staff = { id: string; full_name: string; position: string; specializations: string[]; phone_public: string | null; work_schedule: string | null }
 type Contractor = { id: string; name: string; specializations: string[]; contact_person: string | null; phone: string | null; contract_to: string | null }
 
-const SPEC: Record<string, string> = {
+const SPEC: Record<string, string> = tr({
   PLUMBER: 'сантехник', ELECTRICIAN: 'электрик', CLEANER: 'уборка', YARD_KEEPER: 'дворник',
   HANDYMAN: 'мастер', SECURITY: 'охрана', ELEVATOR: 'лифты', OTHER: 'другое',
-}
+})
 
 function CallButton({ phone, who }: { phone: string; who: string }) {
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={`Позвонить: ${who}`} onPress={() => void Linking.openURL(`tel:${phone}`)}
+    <Pressable accessibilityRole="button" accessibilityLabel={t('Позвонить: {name}', { name: who })} onPress={() => void Linking.openURL(`tel:${phone}`)}
       style={({ pressed }) => ({ width: TOUCH, height: TOUCH, borderRadius: TOUCH / 2, alignItems: 'center', justifyContent: 'center', backgroundColor: pressed ? color.brand100 : color.brand50 })}>
       <Phone size={19} strokeWidth={2.1} color={color.brand700} />
     </Pressable>
@@ -35,19 +36,19 @@ export default function HouseTab() {
 
   return (
     <Screen bottomInset={TAB_BAR_SPACE} refreshing={staff.isRefetching} onRefresh={() => { void staff.refetch(); void contractors.refetch(); void votes.refetch() }}>
-      <Title sub="Собрания, персонал и подрядчики">Дом</Title>
+      <Title sub={t('Собрания, персонал и подрядчики')}>{t('Дом')}</Title>
 
       {(votes.data?.length ?? 0) > 0 && (
         <>
-          <H2>Собрания и голосования</H2>
+          <H2>{t('Собрания и голосования')}</H2>
           {votes.data!.map((v) => <VoteRow key={v.id} v={v} />)}
         </>
       )}
 
-      <H2>Персонал</H2>
+      <H2>{t('Персонал')}</H2>
       {staff.isPending && <Skeleton rows={2} />}
       <ErrorNote>{staff.error?.message}</ErrorNote>
-      {staff.data?.length === 0 && <Empty icon={UserRound} title="Персонал не указан" text="Председатель ещё не добавил сотрудников дома." />}
+      {staff.data?.length === 0 && <Empty icon={UserRound} title={t('Персонал не указан')} text={t('Председатель ещё не добавил сотрудников дома.')} />}
       {staff.data?.map((s) => (
         <Card key={s.id} style={{ flexDirection: 'row', alignItems: 'center' }}>
           <View style={{ flex: 1, gap: 4 }}>
@@ -63,9 +64,9 @@ export default function HouseTab() {
         </Card>
       ))}
 
-      <H2>Подрядчики</H2>
+      <H2>{t('Подрядчики')}</H2>
       {contractors.isPending && <Skeleton rows={1} />}
-      {contractors.data?.length === 0 && <Empty icon={Building2} title="Подрядчиков нет" text="Здесь появятся компании, с которыми у дома договоры." />}
+      {contractors.data?.length === 0 && <Empty icon={Building2} title={t('Подрядчиков нет')} text={t('Здесь появятся компании, с которыми у дома договоры.')} />}
       {contractors.data?.map((c) => (
         <View key={c.id} style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, borderRadius: radius.lg, backgroundColor: color.surface, padding: space.lg }}>
           <View style={{ flex: 1, gap: 4 }}>

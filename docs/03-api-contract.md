@@ -514,18 +514,33 @@ API их не блокирует — иначе пришлось бы дубли
 | Метод | Путь | Роль | Скоуп | Step-up | Лимит | Аудит |
 |---|---|---|---|---|---|---|
 | POST | `/houses/:id/legal/ask` | chairman, accountant | `house` | нет | `ai` | да |
-| GET | `/houses/:id/legal/history` | chairman | `house` | нет | `read` | нет |
-| POST | `/houses/:id/voice-notes` | chairman | `house` | нет | `upload` | да |
-| GET | `/voice-notes/:id` | chairman | `house` | нет | `read` | нет |
-| POST | `/voice-notes/:id/confirm-tasks` | chairman | `house` | нет | `write` | да |
+| GET | `/houses/:id/legal/history` | chairman, accountant | `house` | нет | `read` | нет |
+| POST | `/houses/:id/voice-notes` | chairman | `house` | нет | `ai` | да |
+| GET | `/houses/:id/voice-notes`, `/houses/:id/voice-notes/:noteId` | chairman | `house` | нет | `read` | нет |
+| POST | `/houses/:id/voice-notes/:noteId/confirm-tasks` | chairman | `house` | нет | `write` | да |
+| POST | `/houses/:id/voice-notes/:noteId/retry`, `/dismiss` | chairman | `house` | нет | `ai` / `write` | нет |
 | POST | `/houses/:id/proposals/compare` | chairman | `house` | нет | `ai` | да |
-| GET | `/comparisons/:id` | chairman | `house` | нет | `read` | нет |
-| GET | `/houses/:id/summary/latest` | член дома | `house` | нет | `read` | нет |
+| GET | `/houses/:id/comparisons`, `/houses/:id/comparisons/:comparisonId` | chairman, accountant | `house` | нет | `read` | нет |
+| POST | `/houses/:id/comparisons/:comparisonId/decide`, `/retry` | chairman | `house` | нет | `write` / `ai` | да |
+| GET | `/houses/:id/summary/latest`, `/houses/:id/summaries` | член дома | `house` | нет | `read` | нет |
+| POST | `/houses/:id/summary/generate` | chairman | `house` | нет | `ai` | да |
 | GET | `/houses/:id/ai/usage` | chairman | `house` | нет | `read` | нет |
 
-Все ИИ-эндпоинты асинхронные: возвращают `ai_job_id`, результат приходит через WebSocket или опросом.
+Голосовое и сравнение КП — асинхронные: ответ сразу со статусом `PROCESSING`, клиент опрашивает сущность. Юрпомощник и сводка — синхронные (до минуты). Лимит дома — 20 вызовов в час и месячная квота токенов; при превышении `429 AI_LIMIT`, при отказе модели `503 AI_UNAVAILABLE`, основная работа продолжается.
 
-**`POST /voice-notes/:id/confirm-tasks`** — существует потому, что ИИ не создаёт задачи сам. Модель извлекает кандидатов, председатель правит и подтверждает, и только тогда задачи появляются у работников с уведомлением.
+**`POST /houses/:id/voice-notes/:noteId/confirm-tasks`** — существует потому, что ИИ не создаёт задачи сам. Модель извлекает кандидатов, председатель правит и подтверждает, и только тогда задачи появляются у работников с уведомлением.
+
+## 17.1 Документы
+
+| Метод | Путь | Роль | Примечание |
+|---|---|---|---|
+| GET | `/houses/:id/reports/:reportId/pdf`, `/xlsx` | член дома | Жильцу — только опубликованный отчёт |
+| GET | `/houses/:id/annual-reports/:year` (+ `/pdf`, `/xlsx`) | chairman, accountant | Годовой отчёт по форме: обороты за год, остатки на конец года |
+| GET | `/houses/:id/votes/:voteId/protocol/pdf` | член дома | Жильцу — только опубликованный протокол |
+| GET | `/houses/:id/exports/transactions?from=YYYY-MM&to=YYYY-MM` | chairman, accountant | Журнал операций в Excel |
+| GET | `/houses/:id/exports/debtors` | chairman, accountant | Должники в Excel |
+
+PDF печатает уже подписанное содержимое и указывает в колонтитуле SHA-256, по которому проверяется подпись ЭЦП.
 
 ---
 

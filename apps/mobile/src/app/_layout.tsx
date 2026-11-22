@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Stack } from 'expo-router'
 import * as SplashScreen from 'expo-splash-screen'
 import { StatusBar } from 'expo-status-bar'
@@ -9,6 +9,7 @@ import { Onest_400Regular, Onest_500Medium, Onest_600SemiBold } from '@expo-goog
 import { useFonts } from 'expo-font'
 import { ApiError } from '../lib/api'
 import { SessionProvider } from '../lib/session'
+import { loadLocale, useLocale } from '../lib/i18n'
 import { color } from '../theme'
 
 void SplashScreen.preventAutoHideAsync()
@@ -24,19 +25,26 @@ const queryClient = new QueryClient({
 
 export default function RootLayout() {
   const [loaded, failed] = useFonts({ Manrope_700Bold, Manrope_800ExtraBold, Onest_400Regular, Onest_500Medium, Onest_600SemiBold })
+  const [localeReady, setLocaleReady] = useState(false)
+  const locale = useLocale()
+
+  useEffect(() => {
+    void loadLocale().finally(() => setLocaleReady(true))
+  }, [])
 
   useEffect(() => {
     // Шрифты не загрузились — показываем системные, но не держим заставку вечно
-    if (loaded || failed) void SplashScreen.hideAsync()
-  }, [loaded, failed])
+    if ((loaded || failed) && localeReady) void SplashScreen.hideAsync()
+  }, [loaded, failed, localeReady])
 
-  if (!loaded && !failed) return null
+  if ((!loaded && !failed) || !localeReady) return null
   return (
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
         <SessionProvider>
           <StatusBar style="dark" />
-          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: color.canvas } }} />
+          {/* Смена языка перемонтирует экраны: строки переводятся при отрисовке */}
+          <Stack key={locale} screenOptions={{ headerShown: false, contentStyle: { backgroundColor: color.canvas } }} />
         </SessionProvider>
       </QueryClientProvider>
     </SafeAreaProvider>

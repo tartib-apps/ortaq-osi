@@ -8,6 +8,7 @@ import { ACCEPT_ATTR, uploadFile } from '../../shared/api/upload'
 import { cn, ease } from '../../shared/lib/cn'
 import { Btn, ErrorNote, Field, fieldCls, Input, Segmented, Select } from '../../shared/ui/kit'
 import { ACCOUNT_TYPE, DOC_KIND, MISSING_DOC } from '../labels'
+import { t } from '../../shared/i18n'
 
 type Contractor = { id: string; name: string }
 type Attached = { file_id: string; kind: DocumentKind; name: string }
@@ -22,7 +23,7 @@ function groups(categories: BudgetCategoryView[], section: 'INCOME' | 'EXPENSE')
   for (const c of categories) {
     if (c.section !== section || !c.is_leaf) continue
     const parent = c.parent_code ? byCode.get(c.parent_code) : undefined
-    const label = parent && parent.parent_code ? `${parent.code} ${parent.short_name}` : section === 'INCOME' ? 'Поступления' : 'Прочие расходы'
+    const label = parent && parent.parent_code ? `${parent.code} ${parent.short_name}` : section === 'INCOME' ? t('Поступления') : t('Прочие расходы')
     out.set(label, [...(out.get(label) ?? []), c])
   }
   return [...out.entries()]
@@ -92,13 +93,13 @@ export function EntryForm({ houseId, chairman, accounts, categories, onClose }: 
   return (
     <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.3, ease }} className="overflow-hidden">
       <div className="mb-5 flex flex-col gap-4 rounded-[20px] bg-surface-2 p-4 sm:p-5">
-        <Segmented id="tx-dir" label="Вид операции" value={direction} onChange={(d) => { setDirection(d); setCode('') }}
-          options={[{ v: 'OUT', label: 'Расход' }, { v: 'IN', label: 'Поступление' }]} />
+        <Segmented id="tx-dir" label={t('Вид операции')} value={direction} onChange={(d) => { setDirection(d); setCode('') }}
+          options={[{ v: 'OUT', label: t('Расход') }, { v: 'IN', label: t('Поступление') }]} />
 
-        <Field label="Строка отчёта" hint={category?.name} error={fields.category_code}>
+        <Field label={t('Строка отчёта')} hint={category?.name} error={fields.category_code}>
           {(id, describedBy) => (
             <select id={id} aria-describedby={describedBy} value={code} onChange={(e) => setCode(e.target.value)} className={cn(fieldCls, 'h-12 pr-4', !code && 'text-ink-3')}>
-              <option value="" disabled>Выберите строку формы</option>
+              <option value="" disabled>{t('Выберите строку формы')}</option>
               {options.map(([label, items]) => (
                 <optgroup key={label} label={label}>
                   {items.map((c) => <option key={c.code} value={c.code}>{c.code} {c.short_name}</option>)}
@@ -109,65 +110,65 @@ export function EntryForm({ houseId, chairman, accounts, categories, onClose }: 
         </Field>
 
         <div className="grid gap-3 sm:grid-cols-3">
-          <Field label="Сумма, ₸" error={fields.amount}>{(id) => <Input id={id} value={amount} onChange={setAmount} inputMode="decimal" placeholder="85 000" />}</Field>
-          <Field label="Дата операции" error={fields.occurred_on}>
+          <Field label={t('Сумма, ₸')} error={fields.amount}>{(id) => <Input id={id} value={amount} onChange={setAmount} inputMode="decimal" placeholder="85 000" />}</Field>
+          <Field label={t('Дата операции')} error={fields.occurred_on}>
             {(id) => <input id={id} type="date" value={date} max={todayAlmaty()} onChange={(e) => setDate(e.target.value)} className={cn(fieldCls, 'h-12')} />}
           </Field>
-          <Field label="Отчётный месяц" hint="Если отличается от даты" error={fields.period}>
+          <Field label={t('Отчётный месяц')} hint={t('Если отличается от даты')} error={fields.period}>
             {(id) => <input id={id} type="month" value={period || date.slice(0, 7)} onChange={(e) => setPeriod(e.target.value)} className={cn(fieldCls, 'h-12')} />}
           </Field>
         </div>
 
-        <Field label="Счёт" error={fields.account_id} hint={category && allowed.length < accounts.length ? 'Для этой строки подходит только этот счёт' : undefined}>
-          {(id) => <Select id={id} value={account?.id ?? ''} onChange={setAccountId} placeholder="Выберите счёт"
+        <Field label={t('Счёт')} error={fields.account_id} hint={category && allowed.length < accounts.length ? t('Для этой строки подходит только этот счёт') : undefined}>
+          {(id) => <Select id={id} value={account?.id ?? ''} onChange={setAccountId} placeholder={t('Выберите счёт')}
             options={allowed.map((a) => ({ v: a.id, label: `${ACCOUNT_TYPE[a.type]} · ${a.bank_name}` }))} />}
         </Field>
 
-        <Field label="Назначение платежа" error={fields.description}>{(id) => <Input id={id} value={description} onChange={setDescription} placeholder="Обслуживание лифтов за октябрь" maxLength={500} />}</Field>
+        <Field label={t('Назначение платежа')} error={fields.description}>{(id) => <Input id={id} value={description} onChange={setDescription} placeholder={t('Обслуживание лифтов за октябрь')} maxLength={500} />}</Field>
 
         {direction === 'OUT' ? (
           <div className="grid gap-3 sm:grid-cols-2">
-            <Field label={category?.requires_contractor ? 'Подрядчик' : 'Подрядчик, если есть'} error={fields.contractor_id}>
+            <Field label={category?.requires_contractor ? t('Подрядчик') : t('Подрядчик, если есть')} error={fields.contractor_id}>
               {(id) => <Select id={id} value={contractorId} onChange={setContractorId}
-                options={[{ v: '', label: 'Не из справочника' }, ...(contractors.data ?? []).map((c) => ({ v: c.id, label: c.name }))]} />}
+                options={[{ v: '', label: t('Не из справочника') }, ...(contractors.data ?? []).map((c) => ({ v: c.id, label: c.name }))]} />}
             </Field>
-            <Field label="Или получатель" hint={category?.requires_contractor ? 'Наименование печатается в отчёте' : undefined}>
-              {(id) => <Input id={id} value={counterparty} onChange={setCounterparty} placeholder="ИП Сейткали, дворник" />}
+            <Field label={t('Или получатель')} hint={category?.requires_contractor ? t('Наименование печатается в отчёте') : undefined}>
+              {(id) => <Input id={id} value={counterparty} onChange={setCounterparty} placeholder={t('ИП Сейткали, дворник')} />}
             </Field>
           </div>
         ) : (
-          <Field label="Плательщик, если важно">{(id) => <Input id={id} value={counterparty} onChange={setCounterparty} placeholder="ТОО «Кофейня», аренда 1 этажа" />}</Field>
+          <Field label={t('Плательщик, если важно')}>{(id) => <Input id={id} value={counterparty} onChange={setCounterparty} placeholder={t('ТОО «Кофейня», аренда 1 этажа')} />}</Field>
         )}
 
         <div className="flex flex-col gap-2">
-          <span className="text-[13.5px] font-semibold text-ink">Подтверждающие документы</span>
+          <span className="text-[13.5px] font-semibold text-ink">{t('Подтверждающие документы')}</span>
           {docs.map((d, i) => (
             <div key={d.file_id} className="flex flex-wrap items-center gap-2 rounded-[15px] bg-surface p-2 pl-4">
               <FileText size={17} className="shrink-0 text-ink-2" />
               <span className="min-w-0 flex-1 truncate text-[14px] text-ink">{d.name}</span>
               <span className="w-56 max-w-full"><Select value={d.kind} onChange={(k) => setDocs((l) => l.map((x, j) => (j === i ? { ...x, kind: k as DocumentKind } : x)))}
                 options={DocumentKind.map((k) => ({ v: k, label: DOC_KIND[k] ?? k }))} /></span>
-              <button type="button" aria-label="Убрать документ" onClick={() => setDocs((l) => l.filter((_, j) => j !== i))}
+              <button type="button" aria-label={t('Убрать документ')} onClick={() => setDocs((l) => l.filter((_, j) => j !== i))}
                 className="grid size-11 place-items-center rounded-full text-ink-2 hover:bg-surface-2"><X size={17} /></button>
             </div>
           ))}
           <label className="inline-flex h-11 w-fit cursor-pointer items-center gap-2 rounded-full bg-surface px-4 text-[14px] font-semibold text-ink focus-within:ring-[3px] focus-within:ring-brand-100 hover:bg-surface-3">
-            <Paperclip size={16} /> {upload.isPending ? 'Загружаем…' : 'Приложить фото или PDF'}
+            <Paperclip size={16} /> {upload.isPending ? t('Загружаем…') : t('Приложить фото или PDF')}
             <input type="file" multiple accept={ACCEPT_ATTR} className="sr-only" disabled={upload.isPending}
               onChange={(e) => { const files = [...(e.target.files ?? [])]; e.target.value = ''; if (files.length) upload.mutate(files) }} />
           </label>
           {needs.length > 0 && (
-            <p className="text-[13px] text-ink-2">Для отчёта понадобятся: {needs.map((k) => MISSING_DOC[k] ?? k).join(', ')}. Провести можно и сейчас — документы приложите позже.</p>
+            <p className="text-[13px] text-ink-2">{t('Для отчёта понадобятся: {docs}. Провести можно и сейчас — документы приложите позже.', { docs: needs.map((k) => MISSING_DOC[k] ?? k).join(', ') })}</p>
           )}
         </div>
 
         <ErrorNote>{upload.error?.message ?? (save.error && !Object.keys(fields).length ? save.error.message : null)}</ErrorNote>
         <div className="flex flex-wrap gap-2">
-          {chairman && <Btn loading={save.isPending && save.variables === true} disabled={!ready} onClick={() => save.mutate(true)}>Провести</Btn>}
+          {chairman && <Btn loading={save.isPending && save.variables === true} disabled={!ready} onClick={() => save.mutate(true)}>{t('Провести')}</Btn>}
           <Btn variant={chairman ? 'soft' : 'solid'} loading={save.isPending && save.variables === false} disabled={!ready} onClick={() => save.mutate(false)}>
-            {chairman ? 'Сохранить черновиком' : 'Передать на проведение'}
+            {chairman ? t('Сохранить черновиком') : t('Передать на проведение')}
           </Btn>
-          <Btn variant="ghost" onClick={onClose}>Отмена</Btn>
+          <Btn variant="ghost" onClick={onClose}>{t('Отмена')}</Btn>
         </div>
       </div>
     </motion.div>

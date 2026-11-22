@@ -4,6 +4,8 @@ import { NavLink } from 'react-router'
 import { Building2, LogOut, type LucideIcon } from 'lucide-react'
 import { cn, initials, spring } from '../lib/cn'
 import { useSignOut } from '../hooks'
+import { LangSwitch } from './LangSwitch'
+import { t } from '../i18n'
 
 export type NavItem = { to: string; label: string; icon: LucideIcon; end?: boolean; badge?: number }
 
@@ -25,7 +27,7 @@ export function Shell({ id, caption, items, user, children }: {
         </div>
 
         {/* На телефоне подписи остаются только для читалок экрана; если пунктов больше, чем места, меню прокручивается, а не страница */}
-        <nav aria-label="Разделы" className="flex min-w-0 overflow-x-auto rounded-full bg-surface p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <nav aria-label={t('Разделы')} className="flex min-w-0 overflow-x-auto rounded-full bg-surface p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {items.map((it) => (
             <NavLink key={it.to} to={it.to} end={it.end} className="relative flex h-10 min-w-10 shrink-0 items-center justify-center rounded-full px-2.5 sm:px-4">
               {({ isActive }) => (
@@ -47,6 +49,7 @@ export function Shell({ id, caption, items, user, children }: {
         </nav>
 
         <div className="flex shrink-0 items-center gap-1.5">
+          <LangSwitch signedIn />
           <span className="hidden items-center gap-2 rounded-full bg-surface p-1 sm:flex xl:pr-3">
             <span className="grid size-9 place-items-center rounded-full bg-brand-100 font-display text-[13px] font-bold text-brand-700">{initials(user.name)}</span>
             <span className="hidden text-left leading-tight xl:block">
@@ -54,7 +57,7 @@ export function Shell({ id, caption, items, user, children }: {
               <span className="block text-[11.5px] text-ink-2">{user.role}</span>
             </span>
           </span>
-          <button onClick={() => void signOut()} aria-label="Выйти" className="grid size-11 place-items-center rounded-full bg-surface text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink">
+          <button onClick={() => void signOut()} aria-label={t('Выйти')} className="grid size-11 place-items-center rounded-full bg-surface text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink">
             <LogOut size={18} strokeWidth={2} />
           </button>
         </div>

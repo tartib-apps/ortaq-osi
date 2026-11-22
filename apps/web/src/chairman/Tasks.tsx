@@ -8,6 +8,7 @@ import { api } from '../shared/api/client'
 import { cn, ease, formatDate, formatDateTime } from '../shared/lib/cn'
 import { Btn, Card, CardHead, Empty, ErrorNote, Field, Input, PageHead, Segmented, Select, Skeleton, Tag } from '../shared/ui/kit'
 import { PRIORITY_LABELS, PRIORITY_TONE, TASK_STATUS_LABELS } from './labels'
+import { t } from '../shared/i18n'
 
 type Task = {
   id: string; title: string; status: string; priority: string; due_at: string | null; recurring: boolean
@@ -32,13 +33,13 @@ function buildRule(kind: Kind, days: string[], hour: number): string {
 }
 
 function describeRule(rule: string): string {
-  const day = (code: string) => DAYS.find(([c]) => c === code)?.[1] ?? code
+  const day = (code: string) => { const d = DAYS.find(([c]) => c === code)?.[1]; return d ? t(d) : code }
   const hour = rule.match(/BYHOUR=(\d+)/)?.[1] ?? '9'
   const by = rule.match(/BYDAY=([^;]+)/)?.[1]
-  if (rule.includes('FREQ=DAILY')) return `ежедневно в ${hour}:00`
-  if (by === 'MO,TU,WE,TH,FR') return `по будням в ${hour}:00`
-  if (rule.includes('FREQ=MONTHLY') && by) return `первый ${day(by.replace(/^\d/, ''))} месяца в ${hour}:00`
-  return `${by?.split(',').map(day).join(', ') ?? 'еженедельно'} в ${hour}:00`
+  if (rule.includes('FREQ=DAILY')) return t('ежедневно в {hour}:00', { hour })
+  if (by === 'MO,TU,WE,TH,FR') return t('по будням в {hour}:00', { hour })
+  if (rule.includes('FREQ=MONTHLY') && by) return t('первый {day} месяца в {hour}:00', { day: day(by.replace(/^\d/, '')), hour })
+  return t('{days} в {hour}:00', { days: by?.split(',').map(day).join(', ') ?? t('еженедельно'), hour })
 }
 
 function TemplateForm({ houseId, onClose }: { houseId: string; onClose: () => void }) {
@@ -59,35 +60,35 @@ function TemplateForm({ houseId, onClose }: { houseId: string; onClose: () => vo
   return (
     <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.3, ease }} className="overflow-hidden">
       <div className="mb-5 flex flex-col gap-4 rounded-[20px] bg-surface-2 p-4">
-        <Field label="Что делать">{(id) => <Input id={id} value={title} onChange={setTitle} placeholder="Уборка двора" autoFocus />}</Field>
+        <Field label={t('Что делать')}>{(id) => <Input id={id} value={title} onChange={setTitle} placeholder={t('Уборка двора')} autoFocus />}</Field>
         <div className="flex flex-col gap-2">
-          <span className="text-[13.5px] font-semibold text-ink">Как часто</span>
-          <Segmented id="rr-kind" label="Как часто" value={kind} onChange={setKind} options={[
-            { v: 'weekdays', label: 'По будням' }, { v: 'daily', label: 'Каждый день' }, { v: 'weekly', label: 'По дням недели' }, { v: 'monthly', label: 'Раз в месяц' },
+          <span className="text-[13.5px] font-semibold text-ink">{t('Как часто')}</span>
+          <Segmented id="rr-kind" label={t('Как часто')} value={kind} onChange={setKind} options={[
+            { v: 'weekdays', label: t('По будням') }, { v: 'daily', label: t('Каждый день') }, { v: 'weekly', label: t('По дням недели') }, { v: 'monthly', label: t('Раз в месяц') },
           ]} />
           {(kind === 'weekly' || kind === 'monthly') && (
-            <div role="group" aria-label="Дни недели" className="flex flex-wrap gap-1.5">
+            <div role="group" aria-label={t('Дни недели')} className="flex flex-wrap gap-1.5">
               {DAYS.map(([code, label]) => {
                 const on = days.includes(code)
                 return (
                   <button key={code} type="button" aria-pressed={on} onClick={() => setDays((d) => (kind === 'monthly' ? [code] : on ? d.filter((x) => x !== code) : [...d, code]))}
-                    className={cn('h-11 min-w-11 rounded-full px-3 text-[14px] font-semibold transition-colors', on ? 'bg-brand-600 text-white' : 'bg-surface text-ink hover:bg-surface-3')}>{label}</button>
+                    className={cn('h-11 min-w-11 rounded-full px-3 text-[14px] font-semibold transition-colors', on ? 'bg-brand-600 text-white' : 'bg-surface text-ink hover:bg-surface-3')}>{t(label)}</button>
                 )
               })}
             </div>
           )}
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Во сколько">{(id) => <Select id={id} value={hour} onChange={setHour} options={Array.from({ length: 15 }, (_, i) => ({ v: String(i + 6), label: `${i + 6}:00` }))} />}</Field>
-          <Field label="Исполнитель">{(id) => <Select id={id} value={who} onChange={setWho} placeholder="Выберите" options={(assignees.data?.workers ?? []).map((w) => ({ v: w.id, label: w.name }))} />}</Field>
+          <Field label={t('Во сколько')}>{(id) => <Select id={id} value={hour} onChange={setHour} options={Array.from({ length: 15 }, (_, i) => ({ v: String(i + 6), label: `${i + 6}:00` }))} />}</Field>
+          <Field label={t('Исполнитель')}>{(id) => <Select id={id} value={who} onChange={setWho} placeholder={t('Выберите')} options={(assignees.data?.workers ?? []).map((w) => ({ v: w.id, label: w.name }))} />}</Field>
         </div>
-        <label className="flex min-h-11 items-center gap-3 text-[14px] text-ink"><input type="checkbox" className="size-4 accent-[var(--color-brand-600)]" checked={photo} onChange={() => setPhoto((v) => !v)} /> Нужна фотофиксация</label>
-        {preview.data && <p className="nums text-[13px] text-ink-2">Ближайшие: {preview.data.next.slice(0, 4).map((d) => formatDateTime(d)).join(' · ')}</p>}
+        <label className="flex min-h-11 items-center gap-3 text-[14px] text-ink"><input type="checkbox" className="size-4 accent-[var(--color-brand-600)]" checked={photo} onChange={() => setPhoto((v) => !v)} /> {t('Нужна фотофиксация')}</label>
+        {preview.data && <p className="nums text-[13px] text-ink-2">{t('Ближайшие: {dates}', { dates: preview.data.next.slice(0, 4).map((d) => formatDateTime(d)).join(' · ') })}</p>}
         <ErrorNote>{create.error?.message}</ErrorNote>
         <div className="flex gap-2">
           <Btn icon={Plus} disabled={title.trim().length < 3 || !who} loading={create.isPending}
-            onClick={() => create.mutate({ title, rrule: rule, default_assignee_id: who, requires_photo: photo, lead_time_hours: 12 })}>Создать</Btn>
-          <Btn variant="soft" onClick={onClose}>Отмена</Btn>
+            onClick={() => create.mutate({ title, rrule: rule, default_assignee_id: who, requires_photo: photo, lead_time_hours: 12 })}>{t('Создать')}</Btn>
+          <Btn variant="soft" onClick={onClose}>{t('Отмена')}</Btn>
         </div>
       </div>
     </motion.div>
@@ -99,25 +100,25 @@ function Routine({ houseId }: { houseId: string }) {
   const [adding, setAdding] = useState(false)
   const q = useQuery({ queryKey: ['house', houseId, 'recurring'], queryFn: () => api<Template[]>(`/houses/${houseId}/recurring`) })
   const toggle = useMutation({
-    mutationFn: (t: Template) => api(`/houses/${houseId}/recurring/${t.id}`, { method: 'PATCH', body: { is_active: !t.is_active } }),
+    mutationFn: (tpl: Template) => api(`/houses/${houseId}/recurring/${tpl.id}`, { method: 'PATCH', body: { is_active: !tpl.is_active } }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['house', houseId, 'recurring'] }),
   })
   return (
     <Card>
-      <CardHead icon={Repeat} title="Рутина по расписанию" sub="Задача появляется у работника заранее. Невыполненная не копится — закрывается как просроченная"
-        aside={!adding && <Btn variant="soft" icon={Plus} onClick={() => setAdding(true)}>Шаблон</Btn>} />
+      <CardHead icon={Repeat} title={t('Рутина по расписанию')} sub={t('Задача появляется у работника заранее. Невыполненная не копится — закрывается как просроченная')}
+        aside={!adding && <Btn variant="soft" icon={Plus} onClick={() => setAdding(true)}>{t('Шаблон')}</Btn>} />
       <AnimatePresence>{adding && <TemplateForm houseId={houseId} onClose={() => setAdding(false)} />}</AnimatePresence>
       {q.isPending && <Skeleton rows={2} />}
-      {q.data?.length === 0 && !adding && <Empty icon={CalendarClock} title="Шаблонов нет" text="Уборка двора по будням, обход техпомещений по пятницам — задайте один раз, дальше задачи появятся сами." />}
+      {q.data?.length === 0 && !adding && <Empty icon={CalendarClock} title={t('Шаблонов нет')} text={t('Уборка двора по будням, обход техпомещений по пятницам — задайте один раз, дальше задачи появятся сами.')} />}
       <ul className="flex flex-col gap-2">
-        {q.data?.map((t) => (
-          <li key={t.id} className={cn('flex flex-wrap items-center gap-3 rounded-[18px] bg-surface-2 px-4 py-3', !t.is_active && 'opacity-60')}>
+        {q.data?.map((tpl) => (
+          <li key={tpl.id} className={cn('flex flex-wrap items-center gap-3 rounded-[18px] bg-surface-2 px-4 py-3', !tpl.is_active && 'opacity-60')}>
             <div className="min-w-0 flex-1">
-              <p className="text-[15px] font-semibold text-ink">{t.title}</p>
-              <p className="text-[13px] text-ink-2">{describeRule(t.rrule)} · {t.default_assignee?.name ?? 'без исполнителя'}{t.next[0] && ` · следующая ${formatDate(t.next[0])}`}</p>
+              <p className="text-[15px] font-semibold text-ink">{tpl.title}</p>
+              <p className="text-[13px] text-ink-2">{describeRule(tpl.rrule)} · {tpl.default_assignee?.name ?? t('без исполнителя')}{tpl.next[0] && ` · ${t('следующая {date}', { date: formatDate(tpl.next[0]) })}`}</p>
             </div>
-            {t.missed_in_row >= 3 && <Tag tone="crit" icon={TriangleAlert}>пропущено {t.missed_in_row} раза подряд</Tag>}
-            <Btn variant="ghost" loading={toggle.isPending && toggle.variables?.id === t.id} onClick={() => toggle.mutate(t)}>{t.is_active ? 'Приостановить' : 'Возобновить'}</Btn>
+            {tpl.missed_in_row >= 3 && <Tag tone="crit" icon={TriangleAlert}>{t('пропущено {n} раза подряд', { n: tpl.missed_in_row })}</Tag>}
+            <Btn variant="ghost" loading={toggle.isPending && toggle.variables?.id === tpl.id} onClick={() => toggle.mutate(tpl)}>{tpl.is_active ? t('Приостановить') : t('Возобновить')}</Btn>
           </li>
         ))}
       </ul>
@@ -133,25 +134,25 @@ export function Tasks() {
   const review = q.data?.filter((t) => t.status === 'SUBMITTED') ?? []
   return (
     <>
-      <PageHead title="Задачи" sub={review.length ? `${review.length} ждут вашего подтверждения` : 'Что сейчас в работе у персонала и подрядчиков'} />
+      <PageHead title={t('Задачи')} sub={review.length ? t('{n} ждут вашего подтверждения', { n: review.length }) : t('Что сейчас в работе у персонала и подрядчиков')} />
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
         <Card>
-          <CardHead icon={ListTodo} title="В работе" />
+          <CardHead icon={ListTodo} title={t('В работе')} />
           {q.isPending && <Skeleton rows={3} />}
-          {q.data?.length === 0 && <Empty icon={ListTodo} title="Активных задач нет" text="Задачи назначаются из заявок или порождаются рутиной по расписанию." />}
+          {q.data?.length === 0 && <Empty icon={ListTodo} title={t('Активных задач нет')} text={t('Задачи назначаются из заявок или порождаются рутиной по расписанию.')} />}
           <ul className="flex flex-col gap-2">
-            {q.data?.map((t) => (
-              <li key={t.id}>
-                <button type="button" disabled={!t.request} onClick={() => t.request && navigate(`/h/${houseId}/requests/${t.request.id}`)}
+            {q.data?.map((task) => (
+              <li key={task.id}>
+                <button type="button" disabled={!task.request} onClick={() => task.request && navigate(`/h/${houseId}/requests/${task.request.id}`)}
                   className="flex w-full flex-wrap items-center gap-3 rounded-[18px] bg-surface-2 px-4 py-3 text-left transition-colors enabled:hover:bg-surface-3">
                   <div className="min-w-0 flex-1">
-                    <p className="text-[14.5px] font-semibold text-ink">{t.recurring && <Repeat size={14} className="mr-1 inline text-ink-2" />}{t.title}</p>
+                    <p className="text-[14.5px] font-semibold text-ink">{task.recurring && <Repeat size={14} className="mr-1 inline text-ink-2" />}{task.title}</p>
                     <p className="text-[13px] text-ink-2">
-                      {t.assignee?.name ?? t.contractor?.name ?? 'без исполнителя'}{t.request && ` · заявка №${t.request.number}`}{t.due_at && ` · до ${formatDateTime(t.due_at)}`}
+                      {task.assignee?.name ?? task.contractor?.name ?? t('без исполнителя')}{task.request && ` · ${t('заявка №{number}', { number: task.request.number })}`}{task.due_at && ` · ${t('до {date}', { date: formatDateTime(task.due_at) })}`}
                     </p>
                   </div>
-                  {t.priority !== 'NORMAL' && <Tag tone={PRIORITY_TONE[t.priority] ?? 'mute'}>{PRIORITY_LABELS[t.priority]}</Tag>}
-                  <Tag tone={t.status === 'SUBMITTED' ? 'warn' : 'mute'}>{TASK_STATUS_LABELS[t.status]}</Tag>
+                  {task.priority !== 'NORMAL' && <Tag tone={PRIORITY_TONE[task.priority] ?? 'mute'}>{PRIORITY_LABELS[task.priority]}</Tag>}
+                  <Tag tone={task.status === 'SUBMITTED' ? 'warn' : 'mute'}>{TASK_STATUS_LABELS[task.status]}</Tag>
                 </button>
               </li>
             ))}

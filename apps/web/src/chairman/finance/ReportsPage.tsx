@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { CircleCheck, FileSignature, FileText, Printer, Send, TriangleAlert } from 'lucide-react'
+import { CalendarRange, CircleCheck, FileSignature, FileText, Printer, Send, TriangleAlert } from 'lucide-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router'
 import type { ReportListItem, ReportView, SigningStartView } from '@ortaq/shared'
@@ -8,8 +8,10 @@ import { useMe } from '../../shared/hooks'
 import { cn, formatDate, formatDateTime } from '../../shared/lib/cn'
 import { Photos } from '../../shared/ui/Photos'
 import { Btn, Card, CardHead, Empty, ErrorNote, PageHead, Select, Skeleton, Tag } from '../../shared/ui/kit'
+import { Download } from '../../shared/ui/Download'
 import { MISSING_DOC, money, monthLabel, recentMonths, REPORT_STATUS } from '../labels'
 import { FinanceTabs } from './FinanceTabs'
+import { t } from '../../shared/i18n'
 
 const tone = (s: string) => (s === 'PUBLISHED' ? 'brand' : s === 'SIGNED' ? 'solid' : 'mute') as 'brand' | 'solid' | 'mute'
 
@@ -25,15 +27,15 @@ export function ReportsPage() {
   })
   return (
     <div className="flex flex-col gap-5">
-      <PageHead title="Финансы" sub="Ежемесячный отчёт по официальной форме" />
+      <PageHead title={t('Финансы')} sub={t('Ежемесячный отчёт по официальной форме')} />
       <FinanceTabs />
       <Card>
-        <CardHead icon={FileText} title="Отчёты" sub="Черновик за прошлый месяц собирается 15 числа сам. Срок сдачи — 20 число"
+        <CardHead icon={FileText} title={t('Отчёты')} sub={t('Черновик за прошлый месяц собирается 15 числа сам. Срок сдачи — 20 число')}
           aside={<span className="flex flex-wrap gap-2"><span className="w-44"><Select value={period} onChange={setPeriod} options={recentMonths(6).map((p) => ({ v: p, label: monthLabel(p) }))} /></span>
-            <Btn loading={generate.isPending} onClick={() => generate.mutate()}>Собрать</Btn></span>} />
+            <Btn loading={generate.isPending} onClick={() => generate.mutate()}>{t('Собрать')}</Btn></span>} />
         <ErrorNote>{(q.error ?? generate.error)?.message}</ErrorNote>
         {q.isPending ? <Skeleton rows={3} /> : (q.data?.length ?? 0) === 0 ? (
-          <Empty icon={FileText} title="Отчётов пока нет" text="Соберите черновик за месяц: строки формы заполнятся из журнала операций." />
+          <Empty icon={FileText} title={t('Отчётов пока нет')} text={t('Соберите черновик за месяц: строки формы заполнятся из журнала операций.')} />
         ) : (
           <ul className="flex flex-col gap-2">
             {q.data!.map((r) => (
@@ -42,9 +44,9 @@ export function ReportsPage() {
                   className="flex w-full flex-wrap items-center gap-x-4 gap-y-1 rounded-[18px] bg-surface-2 px-5 py-3.5 text-left transition-colors hover:bg-surface-3">
                   <span className="min-w-0 flex-1">
                     <span className="block text-[15px] font-medium text-ink">{monthLabel(r.period)}</span>
-                    <span className="block text-[12.5px] text-ink-2">{r.published_at ? `опубликован ${formatDate(r.published_at)}` : `срок ${formatDate(r.due_date)}`}</span>
+                    <span className="block text-[12.5px] text-ink-2">{r.published_at ? t('опубликован {date}', { date: formatDate(r.published_at) }) : t('срок {date}', { date: formatDate(r.due_date) })}</span>
                   </span>
-                  {r.issues > 0 && r.status === 'DRAFT' && <Tag tone="warn" icon={TriangleAlert}>замечаний: {r.issues}</Tag>}
+                  {r.issues > 0 && r.status === 'DRAFT' && <Tag tone="warn" icon={TriangleAlert}>{t('замечаний: {n}', { n: r.issues })}</Tag>}
                   <Tag tone={tone(r.status)}>{REPORT_STATUS[r.status]}</Tag>
                 </button>
               </li>
@@ -52,7 +54,25 @@ export function ReportsPage() {
           </ul>
         )}
       </Card>
+      <AnnualCard houseId={houseId} />
     </div>
+  )
+}
+
+/** Годовой отчёт по той же форме: обороты за год, остатки на конец года. Сдаётся до 1 апреля */
+function AnnualCard({ houseId }: { houseId: string }) {
+  const thisYear = new Date().getFullYear()
+  const [year, setYear] = useState(String(new Date().getMonth() < 3 ? thisYear - 1 : thisYear))
+  const years = [thisYear, thisYear - 1, thisYear - 2].map(String)
+  return (
+    <Card>
+      <CardHead icon={CalendarRange} title={t('Годовой отчёт')} sub={t('Собирается из журнала за год: обороты за 12 месяцев, остатки и долги на конец года. Представляется собранию до 1 апреля')} />
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="w-36"><Select value={year} onChange={setYear} options={years.map((y) => ({ v: y, label: t('{year} год', { year: y }) }))} /></span>
+        <Download kind="pdf" href={`/houses/${houseId}/annual-reports/${year}/pdf`}>{t('Скачать PDF')}</Download>
+        <Download kind="xlsx" href={`/houses/${houseId}/annual-reports/${year}/xlsx`}>Excel</Download>
+      </div>
+    </Card>
   )
 }
 
@@ -78,15 +98,15 @@ function Signing({ houseId, report, role }: { houseId: string; report: ReportVie
     <div className="flex flex-col gap-3 rounded-[20px] bg-surface-2 p-4">
       {started ? (
         <>
-          <p className="text-[14px] text-ink">Откройте eGov mobile, проверьте описание документа и подпишите своей ЭЦП. Потом вернитесь сюда.</p>
+          <p className="text-[14px] text-ink">{t('Откройте eGov mobile, проверьте описание документа и подпишите своей ЭЦП. Потом вернитесь сюда.')}</p>
           <div className="flex flex-wrap gap-2">
-            <a href={started.deeplink} target="_blank" rel="noreferrer" className="inline-flex h-11 items-center rounded-full bg-surface px-4 text-[14px] font-semibold text-brand-700 hover:bg-surface-3">Открыть eGov mobile</a>
-            <Btn icon={CircleCheck} loading={done.isPending} onClick={() => done.mutate()}>Я подписал</Btn>
+            <a href={started.deeplink} target="_blank" rel="noreferrer" className="inline-flex h-11 items-center rounded-full bg-surface px-4 text-[14px] font-semibold text-brand-700 hover:bg-surface-3">{t('Открыть eGov mobile')}</a>
+            <Btn icon={CircleCheck} loading={done.isPending} onClick={() => done.mutate()}>{t('Я подписал')}</Btn>
           </div>
-          {done.data && !('id' in done.data) && <p className="text-[13px] text-ink-2">Подпись ещё не получена. Завершите подписание в eGov mobile</p>}
+          {done.data && !('id' in done.data) && <p className="text-[13px] text-ink-2">{t('Подпись ещё не получена. Завершите подписание в eGov mobile')}</p>}
         </>
       ) : (
-        <Btn icon={FileSignature} loading={start.isPending} onClick={() => start.mutate()}>Подписать ЭЦП {role === 'CHAIRMAN' ? 'председателя' : 'бухгалтера'}</Btn>
+        <Btn icon={FileSignature} loading={start.isPending} onClick={() => start.mutate()}>{role === 'CHAIRMAN' ? t('Подписать ЭЦП председателя') : t('Подписать ЭЦП бухгалтера')}</Btn>
       )}
       <ErrorNote>{(start.error ?? done.error)?.message}</ErrorNote>
     </div>
@@ -109,17 +129,21 @@ export function ReportDetail() {
   const unsigned = !r.signatures.chairman && !r.signatures.accountant
   return (
     <div className="flex flex-col gap-5">
-      <PageHead title={`Отчёт за ${monthLabel(r.period).toLowerCase()}`} sub={`${REPORT_STATUS[r.status]} · срок сдачи ${formatDate(r.due_date)} · собран ${formatDateTime(r.generated_at)}`}
-        back={{ label: 'Отчёты', onClick: () => navigate(`/h/${houseId}/finance/reports`) }}
-        actions={<Btn variant="soft" icon={Printer} onClick={() => window.print()}>Печать</Btn>} />
+      <PageHead title={t('Отчёт за {month}', { month: monthLabel(r.period).toLowerCase() })} sub={`${REPORT_STATUS[r.status]} · ${t('срок сдачи {date}', { date: formatDate(r.due_date) })} · ${t('собран {date}', { date: formatDateTime(r.generated_at) })}`}
+        back={{ label: t('Отчёты'), onClick: () => navigate(`/h/${houseId}/finance/reports`) }}
+        actions={<span className="flex flex-wrap gap-2 print:hidden">
+          <Download kind="pdf" href={`/houses/${houseId}/reports/${r.id}/pdf`}>PDF</Download>
+          <Download kind="xlsx" href={`/houses/${houseId}/reports/${r.id}/xlsx`}>Excel</Download>
+          <Btn variant="soft" icon={Printer} onClick={() => window.print()}>{t('Печать')}</Btn>
+        </span>} />
 
       {r.issues.length > 0 && (
         <Card className="bg-warning-soft">
-          <CardHead icon={TriangleAlert} title="До сдачи стоит исправить" sub="Отчёт можно подписать и так, но недостающие документы лучше запросить сейчас" />
+          <CardHead icon={TriangleAlert} title={t('До сдачи стоит исправить')} sub={t('Отчёт можно подписать и так, но недостающие документы лучше запросить сейчас')} />
           <ul className="flex flex-col gap-1.5 text-[14px] text-ink">
             {r.issues.map((i, n) => (
               <li key={n}>
-                • {i.transaction ? `Операция №${i.transaction.number}, ${i.transaction.category} ${money(i.transaction.amount)} — нет: ${i.transaction.missing.map((k) => MISSING_DOC[k]).join(', ')}` : i.message}
+                • {i.transaction ? t('Операция №{number}, {category} {amount} — нет: {docs}', { number: i.transaction.number, category: i.transaction.category, amount: money(i.transaction.amount), docs: i.transaction.missing.map((k) => MISSING_DOC[k]).join(', ') }) : i.message}
               </li>
             ))}
           </ul>
@@ -127,15 +151,15 @@ export function ReportDetail() {
       )}
 
       <Card>
-        <h2 className="font-display text-[18px] font-bold text-ink">Ежемесячный отчёт по управлению объектом кондоминиума</h2>
+        <h2 className="font-display text-[18px] font-bold text-ink">{t('Ежемесячный отчёт по управлению объектом кондоминиума')}</h2>
         <dl className="mt-3 grid gap-x-6 gap-y-1.5 text-[13.5px] sm:grid-cols-2">
-          <div><dt className="inline text-ink-2">Период: </dt><dd className="inline text-ink">{formatDate(r.header.period_from)} — {formatDate(r.header.period_to)}</dd></div>
-          <div><dt className="inline text-ink-2">Адрес: </dt><dd className="inline text-ink">{r.header.address}</dd></div>
-          <div><dt className="inline text-ink-2">Форма управления: </dt><dd className="inline text-ink">{r.header.management_form}</dd></div>
-          <div><dt className="inline text-ink-2">Субъект управления: </dt><dd className="inline text-ink">{r.header.organization}, БИН {r.header.bin}</dd></div>
+          <div><dt className="inline text-ink-2">{t('Период:')} </dt><dd className="inline text-ink">{formatDate(r.header.period_from)} — {formatDate(r.header.period_to)}</dd></div>
+          <div><dt className="inline text-ink-2">{t('Адрес:')} </dt><dd className="inline text-ink">{r.header.address}</dd></div>
+          <div><dt className="inline text-ink-2">{t('Форма управления:')} </dt><dd className="inline text-ink">{r.header.management_form}</dd></div>
+          <div><dt className="inline text-ink-2">{t('Субъект управления:')} </dt><dd className="inline text-ink">{r.header.organization}, {t('БИН {bin}', { bin: r.header.bin })}</dd></div>
         </dl>
         <table className="mt-5 w-full text-left text-[14px]">
-          <thead><tr className="text-[13px] text-ink-2"><th className="w-20 pb-2 font-medium">№</th><th className="pb-2 font-medium">Наименование</th><th className="w-36 pb-2 text-right font-medium">Сумма, ₸</th></tr></thead>
+          <thead><tr className="text-[13px] text-ink-2"><th className="w-20 pb-2 font-medium">№</th><th className="pb-2 font-medium">{t('Наименование')}</th><th className="w-36 pb-2 text-right font-medium">{t('Сумма, ₸')}</th></tr></thead>
           <tbody>
             {r.rows.map((row) => (
               <tr key={row.code} className="align-top [&>td]:border-t [&>td]:border-surface-3">
@@ -154,7 +178,7 @@ export function ReportDetail() {
 
       {r.work.length > 0 && (
         <Card>
-          <CardHead title="Выполненные работы" sub="Подтверждённые председателем задачи с фотофиксацией" />
+          <CardHead title={t('Выполненные работы')} sub={t('Подтверждённые председателем задачи с фотофиксацией')} />
           <ul className="flex flex-col gap-4">
             {r.work.map((w) => (
               <li key={w.task_id} className="flex flex-col gap-2">
@@ -167,18 +191,18 @@ export function ReportDetail() {
       )}
 
       <Card>
-        <CardHead icon={FileSignature} title="Подписи" sub={r.signatures.accountant_required ? 'Председатель и бухгалтер подписывают ЭЦП через eGov mobile' : 'Бухгалтера в доме нет — подписывает председатель'} />
+        <CardHead icon={FileSignature} title={t('Подписи')} sub={r.signatures.accountant_required ? t('Председатель и бухгалтер подписывают ЭЦП через eGov mobile') : t('Бухгалтера в доме нет — подписывает председатель')} />
         <ul className="mb-4 flex flex-col gap-1.5 text-[14px]">
-          <li>Председатель: {r.signatures.chairman ? <span className="text-brand-700">{r.signatures.chairman.name}, {formatDateTime(r.signatures.chairman.signed_at)}</span> : <span className="text-ink-3">не подписано</span>}</li>
-          {r.signatures.accountant_required && <li>Бухгалтер: {r.signatures.accountant ? <span className="text-brand-700">{r.signatures.accountant.name}, {formatDateTime(r.signatures.accountant.signed_at)}</span> : <span className="text-ink-3">не подписано</span>}</li>}
+          <li>{t('Председатель:')} {r.signatures.chairman ? <span className="text-brand-700">{r.signatures.chairman.name}, {formatDateTime(r.signatures.chairman.signed_at)}</span> : <span className="text-ink-3">{t('не подписано')}</span>}</li>
+          {r.signatures.accountant_required && <li>{t('Бухгалтер:')} {r.signatures.accountant ? <span className="text-brand-700">{r.signatures.accountant.name}, {formatDateTime(r.signatures.accountant.signed_at)}</span> : <span className="text-ink-3">{t('не подписано')}</span>}</li>}
         </ul>
         <div className="flex flex-col gap-3">
           <Signing houseId={houseId} report={r} role={role} />
           <div className="flex flex-wrap gap-2">
-            {r.status === 'DRAFT' && unsigned && <Btn variant="soft" loading={regenerate.isPending} onClick={() => regenerate.mutate()}>Пересобрать из журнала</Btn>}
-            {role === 'CHAIRMAN' && r.status === 'SIGNED' && <Btn icon={Send} loading={publish.isPending} onClick={() => publish.mutate()}>Опубликовать жильцам</Btn>}
+            {r.status === 'DRAFT' && unsigned && <Btn variant="soft" loading={regenerate.isPending} onClick={() => regenerate.mutate()}>{t('Пересобрать из журнала')}</Btn>}
+            {role === 'CHAIRMAN' && r.status === 'SIGNED' && <Btn icon={Send} loading={publish.isPending} onClick={() => publish.mutate()}>{t('Опубликовать жильцам')}</Btn>}
           </div>
-          {!unsigned && r.status === 'DRAFT' && <p className="text-[13px] text-ink-2">Первая подпись закрыла месяц: операции за {monthLabel(r.period).toLowerCase()} больше не меняются</p>}
+          {!unsigned && r.status === 'DRAFT' && <p className="text-[13px] text-ink-2">{t('Первая подпись закрыла месяц: операции за {month} больше не меняются', { month: monthLabel(r.period).toLowerCase() })}</p>}
           <ErrorNote>{(regenerate.error ?? publish.error)?.message}</ErrorNote>
         </div>
       </Card>

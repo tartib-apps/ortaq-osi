@@ -9,6 +9,7 @@ import { ChairmanLayout } from '../chairman/ChairmanLayout'
 import { useMe, useSignOut } from '../shared/hooks'
 import { SignedOutWatcher, StepUpGate } from '../shared/session'
 import { Btn, ErrorNote } from '../shared/ui/kit'
+import { t } from '../shared/i18n'
 
 /* Корневой каркас и охрана маршрутов. Права проверяет API; здесь лишь не показываем лишнего */
 
@@ -57,8 +58,8 @@ export function NoAccess() {
   return (
     <AuthLayout>
       <span className="grid size-12 place-items-center rounded-full bg-surface text-ink-2"><Smartphone size={22} strokeWidth={2} /></span>
-      <AuthTitle title="Кабинет для правления дома" sub="Жильцы и работники пользуются мобильным приложением Ortaq. Если вас назначили председателем, вход откроется после письма от администратора." />
-      <Btn variant="soft" onClick={() => void signOut()}>Выйти</Btn>
+      <AuthTitle title={t('Кабинет для правления дома')} sub={t('Жильцы и работники пользуются мобильным приложением Ortaq. Если вас назначили председателем, вход откроется после письма от администратора.')} />
+      <Btn variant="soft" onClick={() => void signOut()}>{t('Выйти')}</Btn>
     </AuthLayout>
   )
 }

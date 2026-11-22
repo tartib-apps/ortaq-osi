@@ -10,6 +10,7 @@ import { useHouse } from '../../lib/session'
 import { color, space } from '../../theme'
 import { Button, Card, ErrorNote, H2, Screen, Skeleton, T, Title } from '../../ui/kit'
 import { PhotoStrip } from '../../ui/photos'
+import { t } from '../../lib/i18n'
 
 /** Опубликованный отчёт (docs/10 §7): те же строки формы, что подписали председатель и бухгалтер */
 export default function Report() {
@@ -19,14 +20,14 @@ export default function Report() {
   if (!house || q.isPending) return <Screen><Skeleton rows={6} /></Screen>
   if (!q.data) return <Screen><ErrorNote>{q.error?.message}</ErrorNote></Screen>
   const r = q.data
-  const signed = [r.signatures.chairman && `председатель ${r.signatures.chairman.name}`, r.signatures.accountant && `бухгалтер ${r.signatures.accountant.name}`].filter(Boolean).join(', ')
+  const signed = [r.signatures.chairman && t('председатель {name}', { name: r.signatures.chairman.name }), r.signatures.accountant && t('бухгалтер {name}', { name: r.signatures.accountant.name })].filter(Boolean).join(', ')
   return (
     <Screen>
-      <View style={{ alignItems: 'flex-start' }}><Button variant="soft" icon={ArrowLeft} onPress={() => (router.canGoBack() ? router.back() : router.replace('/payments'))}>Назад</Button></View>
-      <Title sub={r.header.address}>Отчёт за {month(r.period)}</Title>
+      <View style={{ alignItems: 'flex-start' }}><Button variant="soft" icon={ArrowLeft} onPress={() => (router.canGoBack() ? router.back() : router.replace('/payments'))}>{t('Назад')}</Button></View>
+      <Title sub={r.header.address}>{t('Отчёт за {month}', { month: month(r.period) })}</Title>
       <Card tone="brand" style={{ flexDirection: 'row', alignItems: 'center' }}>
         <BadgeCheck size={20} color={color.brand600} />
-        <T size={14} style={{ flex: 1 }}>Подписан ЭЦП: {signed}{r.published_at ? `. Опубликован ${when(r.published_at)}` : ''}</T>
+        <T size={14} style={{ flex: 1 }}>{t('Подписан ЭЦП: {names}', { names: signed })}{r.published_at ? `. ${t('Опубликован {date}', { date: when(r.published_at) })}` : ''}</T>
       </Card>
       <Card>
         {r.rows.filter((row) => row.amount !== 0 || row.level === 0).map((row) => (
@@ -39,7 +40,7 @@ export default function Report() {
           </View>
         ))}
       </Card>
-      {r.work.length > 0 && <H2>Выполненные работы</H2>}
+      {r.work.length > 0 && <H2>{t('Выполненные работы')}</H2>}
       {r.work.map((w) => (
         <Card key={w.task_id}>
           <T weight="semibold">{w.title}</T>

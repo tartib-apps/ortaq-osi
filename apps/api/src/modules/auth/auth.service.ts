@@ -105,11 +105,12 @@ export class AuthService {
     return { ...(await this.completeLogin(userId)), isNew }
   }
 
-  async updateProfile(userId: string, fullName: string): Promise<MeResponse> {
+  async updateProfile(userId: string, patch: { full_name?: string; locale?: 'ru' | 'kk' }): Promise<MeResponse> {
     await this.db.run(async (tx) => {
-      const before = await tx.user.findUniqueOrThrow({ where: { id: userId }, select: { fullName: true } })
-      await tx.user.update({ where: { id: userId }, data: { fullName } })
-      await this.audit.append(tx, { houseId: null, action: 'user.profile_update', entityType: 'User', entityId: userId, before, after: { fullName } })
+      const before = await tx.user.findUniqueOrThrow({ where: { id: userId }, select: { fullName: true, locale: true } })
+      const data = { ...(patch.full_name !== undefined && { fullName: patch.full_name }), ...(patch.locale && { locale: patch.locale }) }
+      await tx.user.update({ where: { id: userId }, data })
+      await this.audit.append(tx, { houseId: null, action: 'user.profile_update', entityType: 'User', entityId: userId, before, after: data })
     })
     return this.me(userId)
   }
@@ -138,6 +139,7 @@ export class AuthService {
         phone: user.phone,
         full_name: user.fullName,
         is_platform_admin: user.isPlatformAdmin,
+        locale: user.locale,
         memberships: memberships.map((m) => ({ house_id: m.houseId, house_display_name: m.house.displayName, role: m.role })),
       }
     })

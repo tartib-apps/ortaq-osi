@@ -6,6 +6,7 @@ import { isValidIinBin, type CreateOrganizationBody } from '@ortaq/shared'
 import { api, ApiError } from '../shared/api/client'
 import { ease, plural } from '../shared/lib/cn'
 import { Btn, Card, CardHead, Cell, Empty, ErrorNote, Field, Input, PageHead, Row, Segmented, Skeleton, Table, Tag, Td } from '../shared/ui/kit'
+import { t } from '../shared/i18n'
 import type { Organization } from './types'
 
 function CreateOrganization({ onClose }: { onClose: () => void }) {
@@ -26,7 +27,7 @@ function CreateOrganization({ onClose }: { onClose: () => void }) {
   })
 
   // БИН проверяем сразу: ошибка в нём всплыла бы только к 20 числу, в шапке отчёта
-  const binError = bin.length === 12 && !isValidIinBin(bin) ? 'Контрольный разряд не сходится. Проверьте цифры' : fields.bin
+  const binError = bin.length === 12 && !isValidIinBin(bin) ? t('Контрольный разряд не сходится. Проверьте цифры') : fields.bin
 
   const submit = (e: FormEvent) => {
     e.preventDefault()
@@ -37,27 +38,27 @@ function CreateOrganization({ onClose }: { onClose: () => void }) {
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.35, ease }}>
       <Card>
-        <CardHead icon={Landmark} title="Новая организация" sub="ОСИ или простое товарищество: юрлицо, которое управляет домами"
-          aside={<button onClick={onClose} aria-label="Закрыть" className="grid size-10 place-items-center rounded-full text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink"><X size={18} /></button>} />
+        <CardHead icon={Landmark} title={t('Новая организация')} sub={t('ОСИ или простое товарищество: юрлицо, которое управляет домами')}
+          aside={<button onClick={onClose} aria-label={t('Закрыть')} className="grid size-10 place-items-center rounded-full text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink"><X size={18} /></button>} />
         <form onSubmit={submit} className="grid gap-4 md:grid-cols-2">
-          <Field label="Наименование" error={fields.name}>
-            {(id, d) => <Input id={id} describedBy={d} value={name} onChange={setName} placeholder="ОСИ «Асыл Арман-3»" autoFocus invalid={!!fields.name} />}
+          <Field label={t('Наименование')} error={fields.name}>
+            {(id, d) => <Input id={id} describedBy={d} value={name} onChange={setName} placeholder={t('ОСИ «Асыл Арман-3»')} autoFocus invalid={!!fields.name} />}
           </Field>
-          <Field label="БИН" hint="12 цифр, попадает в шапку официального отчёта" error={binError}>
+          <Field label={t('БИН')} hint={t('12 цифр, попадает в шапку официального отчёта')} error={binError}>
             {(id, d) => <Input id={id} describedBy={d} value={bin} onChange={(v) => setBin(v.replace(/\D/g, '').slice(0, 12))} inputMode="numeric" className="nums" invalid={!!binError} />}
           </Field>
           <div className="flex flex-col gap-1.5">
-            <span className="text-[13.5px] font-semibold text-ink">Форма управления</span>
-            <Segmented id="org-form" label="Форма управления" value={form} onChange={setForm} options={[{ v: 'OSI', label: 'ОСИ' }, { v: 'PT', label: 'Простое товарищество' }]} />
+            <span className="text-[13.5px] font-semibold text-ink">{t('Форма управления')}</span>
+            <Segmented id="org-form" label={t('Форма управления')} value={form} onChange={setForm} options={[{ v: 'OSI', label: t('ОСИ') }, { v: 'PT', label: t('Простое товарищество') }]} />
           </div>
-          <Field label="Юридический адрес" error={fields.legal_address}>
-            {(id, d) => <Input id={id} describedBy={d} value={address} onChange={setAddress} placeholder="г. Алматы, ..." invalid={!!fields.legal_address} />}
+          <Field label={t('Юридический адрес')} error={fields.legal_address}>
+            {(id, d) => <Input id={id} describedBy={d} value={address} onChange={setAddress} placeholder={t('г. Алматы, ...')} invalid={!!fields.legal_address} />}
           </Field>
           <div className="flex flex-col gap-3 md:col-span-2">
             <ErrorNote>{create.error && !Object.keys(fields).length ? create.error.message : null}</ErrorNote>
             <div className="flex gap-2">
-              <Btn type="submit" loading={create.isPending} disabled={!name || bin.length !== 12 || !!binError || address.length < 5}>Создать</Btn>
-              <Btn variant="soft" onClick={onClose}>Отмена</Btn>
+              <Btn type="submit" loading={create.isPending} disabled={!name || bin.length !== 12 || !!binError || address.length < 5}>{t('Создать')}</Btn>
+              <Btn variant="soft" onClick={onClose}>{t('Отмена')}</Btn>
             </div>
           </div>
         </form>
@@ -73,25 +74,25 @@ export function Organizations() {
   return (
     <>
       <PageHead
-        title="Организации"
-        sub="Юрлица, управляющие домами. Без БИН дом не сможет сформировать отчёт"
-        actions={!creating && <Btn icon={Plus} onClick={() => setCreating(true)}>Добавить организацию</Btn>}
+        title={t('Организации')}
+        sub={t('Юрлица, управляющие домами. Без БИН дом не сможет сформировать отчёт')}
+        actions={!creating && <Btn icon={Plus} onClick={() => setCreating(true)}>{t('Добавить организацию')}</Btn>}
       />
       <AnimatePresence>{creating && <CreateOrganization onClose={() => setCreating(false)} />}</AnimatePresence>
       <Card>
         {q.isPending && <Skeleton rows={4} />}
         {q.isError && <ErrorNote>{q.error.message}</ErrorNote>}
         {q.data?.length === 0 && (
-          <Empty icon={Landmark} title="Пока ни одной организации" text="Начните с ОСИ: потом к ней привязываются дома и назначается председатель." />
+          <Empty icon={Landmark} title={t('Пока ни одной организации')} text={t('Начните с ОСИ: потом к ней привязываются дома и назначается председатель.')} />
         )}
         {q.data && q.data.length > 0 && (
-          <Table cols={[{ label: 'Организация' }, { label: 'Форма' }, { label: 'Дома' }, { label: 'Статус', right: true }]}>
+          <Table cols={[{ label: t('Организация') }, { label: t('Форма') }, { label: t('Дома') }, { label: t('Статус'), right: true }]}>
             {q.data.map((o) => (
               <Row key={o.id}>
-                <Td><Cell title={o.name} sub={<span className="nums">БИН {o.bin} · {o.legal_address}</span>} /></Td>
-                <Td>{o.management_form === 'OSI' ? 'ОСИ' : 'ПТ'}</Td>
-                <Td><span className="nums">{o.house_count ?? 0}</span> {plural(o.house_count ?? 0, ['дом', 'дома', 'домов'])}</Td>
-                <Td right>{o.status === 'ACTIVE' ? <Tag tone="brand">Работает</Tag> : <Tag tone="warn">Приостановлена</Tag>}</Td>
+                <Td><Cell title={o.name} sub={<span className="nums">{t('БИН {bin}', { bin: o.bin })} · {o.legal_address}</span>} /></Td>
+                <Td>{o.management_form === 'OSI' ? t('ОСИ') : t('ПТ')}</Td>
+                <Td><span className="nums">{o.house_count ?? 0}</span> {t(plural(o.house_count ?? 0, ['дом', 'дома', 'домов']))}</Td>
+                <Td right>{o.status === 'ACTIVE' ? <Tag tone="brand">{t('Работает')}</Tag> : <Tag tone="warn">{t('Приостановлена')}</Tag>}</Td>
               </Row>
             ))}
           </Table>

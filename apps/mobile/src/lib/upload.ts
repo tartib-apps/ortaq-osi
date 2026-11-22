@@ -1,6 +1,7 @@
 import * as ImagePicker from 'expo-image-picker'
 import type { FilePurpose, UploadUrlResponse } from '@ortaq/shared'
 import { api, ApiError } from './api'
+import { t } from './i18n'
 
 export type Picked = { uri: string; mimeType: string; size: number; name: string }
 
@@ -25,7 +26,7 @@ export async function pickPhotos(limit: number): Promise<Picked[]> {
 /** Камера — основной путь для работника: снимок прямо на месте работы */
 export async function takePhoto(): Promise<Picked | null> {
   const perm = await ImagePicker.requestCameraPermissionsAsync()
-  if (!perm.granted) throw new ApiError(0, 'CAMERA', 'Нет доступа к камере. Разрешите его в настройках телефона')
+  if (!perm.granted) throw new ApiError(0, 'CAMERA', t('Нет доступа к камере. Разрешите его в настройках телефона'))
   const res = await ImagePicker.launchCameraAsync(PICKER)
   return res.canceled ? null : toPicked(res.assets[0]!)
 }
@@ -44,9 +45,9 @@ export async function uploadPhoto(houseId: string, photo: Picked, purpose: FileP
   try {
     put = await fetch(slot.upload_url, { method: 'PUT', headers: slot.headers, body: blob })
   } catch {
-    throw new ApiError(0, 'NETWORK', 'Фото не отправилось: нет связи')
+    throw new ApiError(0, 'NETWORK', t('Фото не отправилось: нет связи'))
   }
-  if (!put.ok) throw new ApiError(put.status, 'UPLOAD', 'Хранилище не приняло фото. Попробуйте ещё раз')
+  if (!put.ok) throw new ApiError(put.status, 'UPLOAD', t('Хранилище не приняло фото. Попробуйте ещё раз'))
   await api(`/houses/${houseId}/files/${slot.file_id}/finalize`, { method: 'POST' })
   return slot.file_id
 }

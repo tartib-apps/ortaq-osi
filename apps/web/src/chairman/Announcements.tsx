@@ -7,6 +7,7 @@ import type { CreateAnnouncementBody } from '@ortaq/shared'
 import { api } from '../shared/api/client'
 import { cn, ease, formatDateTime, plural } from '../shared/lib/cn'
 import { Btn, Card, CardHead, Empty, ErrorNote, Field, fieldCls, Input, PageHead, Segmented, Skeleton, Tag } from '../shared/ui/kit'
+import { t, tr } from '../shared/i18n'
 
 type Audience = CreateAnnouncementBody['audience']
 type Announcement = {
@@ -17,7 +18,7 @@ type Stats = { recipients: number; read: number; percent: number; by_entrance: {
 type Member = { user_id: string; full_name: string; role: string; units: { number: string }[] }
 type House = { entrance_count: number }
 
-const AUDIENCE_LABEL: Record<Audience, string> = { ALL: 'всем жильцам', STAFF: 'персоналу', SPECIFIC_USERS: 'отдельным жильцам', ENTRANCE: 'подъездам' }
+const AUDIENCE_LABEL: Record<Audience, string> = tr({ ALL: 'всем жильцам', STAFF: 'персоналу', SPECIFIC_USERS: 'отдельным жильцам', ENTRANCE: 'подъездам' })
 
 function Composer({ houseId }: { houseId: string }) {
   const qc = useQueryClient()
@@ -54,23 +55,23 @@ function Composer({ houseId }: { houseId: string }) {
 
   return (
     <Card>
-      <CardHead icon={Megaphone} title="Новое объявление" />
+      <CardHead icon={Megaphone} title={t('Новое объявление')} />
       <div className="flex flex-col gap-4">
-        <Field label="Заголовок">{(id) => <Input id={id} value={title} onChange={setTitle} maxLength={200} placeholder="Отключение горячей воды 12–14 сентября" />}</Field>
-        <Field label="Текст">
+        <Field label={t('Заголовок')}>{(id) => <Input id={id} value={title} onChange={setTitle} maxLength={200} placeholder={t('Отключение горячей воды 12–14 сентября')} />}</Field>
+        <Field label={t('Текст')}>
           {(id) => <textarea id={id} value={body} onChange={(e) => setBody(e.target.value)} rows={5} maxLength={10_000} className={cn(fieldCls, 'resize-y py-3 leading-relaxed')} />}
         </Field>
         <div className="flex flex-col gap-2">
-          <p className="text-[13.5px] font-semibold text-ink">Кому</p>
-          <Segmented id="audience" label="Кому" value={audience} onChange={setAudience} options={[
-            { v: 'ALL', label: 'Всем жильцам' }, { v: 'STAFF', label: 'Персоналу' },
-            { v: 'ENTRANCE', label: 'Подъездам' }, { v: 'SPECIFIC_USERS', label: 'Отдельным' },
+          <p className="text-[13.5px] font-semibold text-ink">{t('Кому')}</p>
+          <Segmented id="audience" label={t('Кому')} value={audience} onChange={setAudience} options={[
+            { v: 'ALL', label: t('Всем жильцам') }, { v: 'STAFF', label: t('Персоналу') },
+            { v: 'ENTRANCE', label: t('Подъездам') }, { v: 'SPECIFIC_USERS', label: t('Отдельным') },
           ]} />
         </div>
         <AnimatePresence initial={false}>
           {audience === 'ENTRANCE' && house.data && (
             <motion.div key="entrances" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-              <div role="group" aria-label="Подъезды" className="flex flex-wrap gap-1.5">
+              <div role="group" aria-label={t('Подъезды')} className="flex flex-wrap gap-1.5">
                 {Array.from({ length: house.data.entrance_count }, (_, i) => i + 1).map((e) => (
                   <button key={e} type="button" aria-pressed={entrances.includes(e)} onClick={() => setEntrances((l) => toggle(l, e))}
                     className={cn('nums h-11 min-w-11 rounded-full px-4 text-[14px] font-semibold transition-colors', entrances.includes(e) ? 'bg-brand-600 text-white' : 'bg-surface-2 text-ink hover:bg-surface-3')}>
@@ -88,8 +89,8 @@ function Composer({ houseId }: { houseId: string }) {
                     <li key={m.user_id}>
                       <label className={cn('flex min-h-11 cursor-pointer items-center gap-3 rounded-[14px] px-4 py-2 transition-colors', userIds.includes(m.user_id) ? 'bg-brand-50' : 'bg-surface-2 hover:bg-surface-3')}>
                         <input type="checkbox" checked={userIds.includes(m.user_id)} onChange={() => setUserIds((l) => toggle(l, m.user_id))} className="size-4 accent-[var(--color-brand-600)]" />
-                        <span className="min-w-0 flex-1 truncate text-[14.5px] text-ink">{m.full_name || 'Без имени'}</span>
-                        <span className="nums text-[13px] text-ink-2">{m.units.map((u) => `кв. ${u.number}`).join(', ') || 'персонал'}</span>
+                        <span className="min-w-0 flex-1 truncate text-[14.5px] text-ink">{m.full_name || t('Без имени')}</span>
+                        <span className="nums text-[13px] text-ink-2">{m.units.map((u) => t('кв. {unit}', { unit: u.number })).join(', ') || t('персонал')}</span>
                       </label>
                     </li>
                   ))}
@@ -99,21 +100,21 @@ function Composer({ houseId }: { houseId: string }) {
           )}
         </AnimatePresence>
         <div className="flex flex-wrap gap-2">
-          <Btn variant={pinned ? 'solid' : 'soft'} icon={Pin} onClick={() => setPinned((v) => !v)}>{pinned ? 'Закреплено' : 'Закрепить'}</Btn>
-          <Btn variant={push ? 'solid' : 'soft'} icon={push ? Bell : BellOff} onClick={() => setPush((v) => !v)}>{push ? 'С push-уведомлением' : 'Только в ленте'}</Btn>
+          <Btn variant={pinned ? 'solid' : 'soft'} icon={Pin} onClick={() => setPinned((v) => !v)}>{pinned ? t('Закреплено') : t('Закрепить')}</Btn>
+          <Btn variant={push ? 'solid' : 'soft'} icon={push ? Bell : BellOff} onClick={() => setPush((v) => !v)}>{push ? t('С push-уведомлением') : t('Только в ленте')}</Btn>
         </div>
-        {!push && <p className="-mt-2 text-[12.5px] text-ink-2">Без push объявление появится в ленте, но телефон не зазвонит. Подходит для несрочного</p>}
+        {!push && <p className="-mt-2 text-[12.5px] text-ink-2">{t('Без push объявление появится в ленте, но телефон не зазвонит. Подходит для несрочного')}</p>}
         <ErrorNote>{publish.error?.message}</ErrorNote>
         <AnimatePresence>
           {sent !== null && (
             <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="nums rounded-[15px] bg-brand-50 px-4 py-3 text-[14px] text-brand-800">
               {sent > 0
-                ? `Опубликовано: ${sent} ${plural(sent, ['получатель', 'получателя', 'получателей'])}`
-                : 'Опубликовано, но получателей пока нет: в выбранной аудитории никто не зарегистрирован'}
+                ? `${t('Опубликовано: {n}', { n: sent })} ${t(plural(sent, ['получатель', 'получателя', 'получателей']))}`
+                : t('Опубликовано, но получателей пока нет: в выбранной аудитории никто не зарегистрирован')}
             </motion.p>
           )}
         </AnimatePresence>
-        <Btn icon={Send} loading={publish.isPending} disabled={!ready} onClick={() => { setSent(null); publish.mutate() }} className="self-start">Опубликовать</Btn>
+        <Btn icon={Send} loading={publish.isPending} disabled={!ready} onClick={() => { setSent(null); publish.mutate() }} className="self-start">{t('Опубликовать')}</Btn>
       </div>
     </Card>
   )
@@ -132,7 +133,7 @@ function StatsPanel({ houseId, id }: { houseId: string; id: string }) {
   return (
     <div className="flex flex-col gap-3 rounded-[16px] bg-surface px-4 py-3">
       <div className="flex items-baseline justify-between gap-3">
-        <p className="nums text-[14.5px] text-ink">Прочитали <b>{s.read}</b> из {s.recipients}</p>
+        <p className="nums text-[14.5px] text-ink">{t('Прочитали')} <b>{s.read}</b> {t('из {n}', { n: s.recipients })}</p>
         <span className="nums font-display text-[20px] font-bold text-ink">{s.percent}%</span>
       </div>
       <div className="h-2 overflow-hidden rounded-full bg-surface-3" aria-hidden>
@@ -140,13 +141,13 @@ function StatsPanel({ houseId, id }: { houseId: string; id: string }) {
       </div>
       {s.by_entrance.length > 1 && (
         <p className="nums text-[13px] text-ink-2">
-          {s.by_entrance.map((e) => `${e.entrance ? `${e.entrance} подъезд` : 'без помещения'} — ${e.read} из ${e.recipients}`).join(' · ')}
+          {s.by_entrance.map((e) => `${e.entrance ? t('{n} подъезд', { n: e.entrance }) : t('без помещения')} — ${t('{read} из {total}', { read: e.read, total: e.recipients })}`).join(' · ')}
         </p>
       )}
       {s.read < s.recipients && (
         <div className="flex flex-wrap items-center gap-2">
-          <Btn variant="soft" icon={Bell} loading={remind.isPending} disabled={reminded !== null} onClick={() => remind.mutate()}>Напомнить непрочитавшим</Btn>
-          {reminded !== null && <span className="nums text-[13px] text-ink-2">Отправлено {reminded}</span>}
+          <Btn variant="soft" icon={Bell} loading={remind.isPending} disabled={reminded !== null} onClick={() => remind.mutate()}>{t('Напомнить непрочитавшим')}</Btn>
+          {reminded !== null && <span className="nums text-[13px] text-ink-2">{t('Отправлено {n}', { n: reminded })}</span>}
         </div>
       )}
       <ErrorNote>{remind.error?.message}</ErrorNote>
@@ -168,9 +169,9 @@ function Feed({ houseId }: { houseId: string }) {
   })
   return (
     <Card>
-      <CardHead icon={BarChart3} title="Опубликованные" sub="Объявление, которое прочитала четверть дома, лучше продублировать" />
+      <CardHead icon={BarChart3} title={t('Опубликованные')} sub={t('Объявление, которое прочитала четверть дома, лучше продублировать')} />
       {q.isPending && <Skeleton rows={3} />}
-      {q.data?.length === 0 && <Empty icon={Megaphone} title="Объявлений пока нет" text="Первое объявление появится у жильцов в ленте и придёт push-уведомлением." />}
+      {q.data?.length === 0 && <Empty icon={Megaphone} title={t('Объявлений пока нет')} text={t('Первое объявление появится у жильцов в ленте и придёт push-уведомлением.')} />}
       <ul className="flex flex-col gap-2">
         {q.data?.map((a) => (
           <motion.li key={a.id} layout transition={{ duration: 0.3, ease }} className="flex flex-col gap-3 rounded-[20px] bg-surface-2 p-4">
@@ -181,7 +182,7 @@ function Feed({ houseId }: { houseId: string }) {
                   {formatDateTime(a.published_at)} · {AUDIENCE_LABEL[a.audience]}{a.entrances?.length ? ` ${a.entrances.join(', ')}` : ''}
                 </p>
               </div>
-              {a.pinned && <Tag icon={Pin}>Закреплено</Tag>}
+              {a.pinned && <Tag icon={Pin}>{t('Закреплено')}</Tag>}
             </div>
             <p className="line-clamp-3 whitespace-pre-line text-[14px] text-ink">{a.body}</p>
             <AnimatePresence initial={false}>
@@ -192,11 +193,11 @@ function Feed({ houseId }: { houseId: string }) {
               )}
             </AnimatePresence>
             <div className="-mx-2 flex flex-wrap gap-1">
-              <Btn variant="ghost" icon={BarChart3} onClick={() => setOpen(open === a.id ? null : a.id)}>{open === a.id ? 'Скрыть' : 'Прочтения'}</Btn>
+              <Btn variant="ghost" icon={BarChart3} onClick={() => setOpen(open === a.id ? null : a.id)}>{open === a.id ? t('Скрыть') : t('Прочтения')}</Btn>
               <Btn variant="ghost" icon={Pin} loading={patch.isPending && patch.variables?.id === a.id} onClick={() => patch.mutate({ id: a.id, pinned: !a.pinned })}>
-                {a.pinned ? 'Открепить' : 'Закрепить'}
+                {a.pinned ? t('Открепить') : t('Закрепить')}
               </Btn>
-              <Btn variant="ghost" icon={Trash2} loading={remove.isPending && remove.variables === a.id} onClick={() => remove.mutate(a.id)}>Удалить</Btn>
+              <Btn variant="ghost" icon={Trash2} loading={remove.isPending && remove.variables === a.id} onClick={() => remove.mutate(a.id)}>{t('Удалить')}</Btn>
             </div>
           </motion.li>
         ))}
@@ -209,7 +210,7 @@ export function Announcements() {
   const { houseId = '' } = useParams()
   return (
     <>
-      <PageHead title="Объявления" sub="Всем жильцам, персоналу, подъездам или отдельным людям — со статистикой прочтений" />
+      <PageHead title={t('Объявления')} sub={t('Всем жильцам, персоналу, подъездам или отдельным людям — со статистикой прочтений')} />
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
         <Composer houseId={houseId} />
         <Feed houseId={houseId} />

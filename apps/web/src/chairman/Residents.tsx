@@ -8,6 +8,7 @@ import { api, ApiError } from '../shared/api/client'
 import { cn, ease, formatDate, plural } from '../shared/lib/cn'
 import { Btn, Card, CardHead, Cell, Empty, ErrorNote, Field, Input, PageHead, Row, Segmented, Skeleton, Table, Tag, Td } from '../shared/ui/kit'
 import { ROLE_LABELS } from '../admin/types'
+import { t } from '../shared/i18n'
 
 type JoinRequest = {
   id: string; full_name: string; phone: string | null; unit_number: string; unit_exists: boolean
@@ -50,29 +51,29 @@ function JoinRequestCard({ r, houseId }: { r: JoinRequest; houseId: string }) {
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <p className="text-[15.5px] font-semibold text-ink">{r.full_name}</p>
-          <p className="nums text-[13.5px] text-ink-2">{r.phone} · {r.relation === 'OWNER' ? 'собственник' : 'наниматель'} · {formatDate(r.created_at)}</p>
+          <p className="nums text-[13.5px] text-ink-2">{r.phone} · {r.relation === 'OWNER' ? t('собственник') : t('наниматель')} · {formatDate(r.created_at)}</p>
         </div>
-        <span className="nums font-display text-[17px] font-bold text-ink">кв. {r.unit_number}</span>
+        <span className="nums font-display text-[17px] font-bold text-ink">{t('кв. {unit}', { unit: r.unit_number })}</span>
       </div>
       {r.comment && <p className="text-[14px] text-ink">«{r.comment}»</p>}
-      {!r.unit_exists && <p className="text-[13.5px] text-warning">Помещения №{r.unit_number} в доме нет: проверьте номер с жильцом</p>}
-      <p className="text-[13px] text-ink-2">Сверка с реестром собственников появится после его загрузки. Право голоса — только после подтверждения личности через ЭЦП.</p>
+      {!r.unit_exists && <p className="text-[13.5px] text-warning">{t('Помещения №{unit} в доме нет: проверьте номер с жильцом', { unit: r.unit_number })}</p>}
+      <p className="text-[13px] text-ink-2">{t('Сверка с реестром собственников появится после его загрузки. Право голоса — только после подтверждения личности через ЭЦП.')}</p>
       <ErrorNote>{shownError(approve.error ?? reject.error)}</ErrorNote>
       <AnimatePresence mode="wait" initial={false}>
         {rejecting ? (
           <motion.div key="reject" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col gap-2">
-            <Field label="Причина отказа" hint="Жилец её увидит">
+            <Field label={t('Причина отказа')} hint={t('Жилец её увидит')}>
               {(id, d) => <Input id={id} describedBy={d} value={reason} onChange={setReason} autoFocus />}
             </Field>
             <div className="flex gap-2">
-              <Btn variant="danger" loading={reject.isPending} disabled={reason.trim().length < 3} onClick={() => reject.mutate()}>Отклонить</Btn>
-              <Btn variant="soft" onClick={() => setRejecting(false)}>Назад</Btn>
+              <Btn variant="danger" loading={reject.isPending} disabled={reason.trim().length < 3} onClick={() => reject.mutate()}>{t('Отклонить')}</Btn>
+              <Btn variant="soft" onClick={() => setRejecting(false)}>{t('Назад')}</Btn>
             </div>
           </motion.div>
         ) : (
           <motion.div key="actions" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex gap-2">
-            <Btn icon={Check} loading={approve.isPending} disabled={!r.unit_exists} onClick={() => approve.mutate()}>Подтвердить</Btn>
-            <Btn variant="soft" icon={X} onClick={() => setRejecting(true)}>Отклонить</Btn>
+            <Btn icon={Check} loading={approve.isPending} disabled={!r.unit_exists} onClick={() => approve.mutate()}>{t('Подтвердить')}</Btn>
+            <Btn variant="soft" icon={X} onClick={() => setRejecting(true)}>{t('Отклонить')}</Btn>
           </motion.div>
         )}
       </AnimatePresence>
@@ -84,10 +85,10 @@ function JoinRequests({ houseId }: { houseId: string }) {
   const q = useQuery({ queryKey: ['house', houseId, 'join-requests', 'PENDING'], queryFn: () => api<JoinRequest[]>(`/houses/${houseId}/join-requests?status=PENDING`) })
   return (
     <Card>
-      <CardHead icon={UserPlus} title="Заявки на вступление" sub="От тех, кто пришёл без ссылки. Решение за вами: реестр мог устареть после продажи квартиры"
+      <CardHead icon={UserPlus} title={t('Заявки на вступление')} sub={t('От тех, кто пришёл без ссылки. Решение за вами: реестр мог устареть после продажи квартиры')}
         aside={q.data && q.data.length > 0 ? <span className="nums grid size-8 place-items-center rounded-full bg-warning-soft font-display text-[14px] font-bold text-warning">{q.data.length}</span> : null} />
       {q.isPending && <Skeleton rows={2} />}
-      {q.data?.length === 0 && <Empty icon={UserPlus} title="Новых заявок нет" text="Когда жилец попросит вступить без ссылки, заявка появится здесь." />}
+      {q.data?.length === 0 && <Empty icon={UserPlus} title={t('Новых заявок нет')} text={t('Когда жилец попросит вступить без ссылки, заявка появится здесь.')} />}
       <ul className="flex flex-col gap-2">
         <AnimatePresence initial={false}>{q.data?.map((r) => <JoinRequestCard key={r.id} r={r} houseId={houseId} />)}</AnimatePresence>
       </ul>
@@ -114,11 +115,11 @@ function IssuedLink({ issued, onClose }: { issued: Issued; onClose: () => void }
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.35, ease }}
       className="flex flex-col gap-3 rounded-[20px] bg-brand-50 p-4">
-      <p className="text-[14px] font-semibold text-brand-800">Скопируйте ссылку сейчас: больше её не покажем</p>
+      <p className="text-[14px] font-semibold text-brand-800">{t('Скопируйте ссылку сейчас: больше её не покажем')}</p>
       <p className="break-all rounded-[14px] bg-surface px-4 py-3 font-mono text-[13.5px] text-ink">{issued.url}</p>
       <div className="flex flex-wrap gap-2">
-        <Btn icon={copied ? Check : Copy} onClick={() => void copy()}>{copied ? 'Скопировано' : 'Скопировать ссылку'}</Btn>
-        <Btn variant="ghost" onClick={onClose}>Готово</Btn>
+        <Btn icon={copied ? Check : Copy} onClick={() => void copy()}>{copied ? t('Скопировано') : t('Скопировать ссылку')}</Btn>
+        <Btn variant="ghost" onClick={onClose}>{t('Готово')}</Btn>
       </div>
     </motion.div>
   )
@@ -153,24 +154,24 @@ function Invites({ houseId }: { houseId: string }) {
 
   return (
     <Card>
-      <CardHead icon={Link2} title="Ссылки-приглашения" sub="Ссылка определяет дом. Личность и право голоса подтверждаются отдельно, через eGov" />
+      <CardHead icon={Link2} title={t('Ссылки-приглашения')} sub={t('Ссылка определяет дом. Личность и право голоса подтверждаются отдельно, через eGov')} />
       <AnimatePresence mode="wait">
         {issued ? <IssuedLink key="issued" issued={issued} onClose={() => setIssued(null)} /> : (
           <motion.div key="form" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col gap-4">
-            <Segmented id="invite-type" label="Тип ссылки" value={type} onChange={setType}
-              options={[{ v: 'PUBLIC_LINK', label: 'Для чата дома' }, { v: 'PERSONAL', label: 'Одному человеку' }]} />
+            <Segmented id="invite-type" label={t('Тип ссылки')} value={type} onChange={setType}
+              options={[{ v: 'PUBLIC_LINK', label: t('Для чата дома') }, { v: 'PERSONAL', label: t('Одному человеку') }]} />
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Срок, дней">
+              <Field label={t('Срок, дней')}>
                 {(id) => <Input id={id} value={days} onChange={(v) => setDays(v.replace(/\D/g, '').slice(0, 2))} inputMode="numeric" className="nums" />}
               </Field>
               {type === 'PUBLIC_LINK' && (
-                <Field label="Лимит активаций" hint="Пусто — без лимита">
+                <Field label={t('Лимит активаций')} hint={t('Пусто — без лимита')}>
                   {(id, d) => <Input id={id} describedBy={d} value={limit} onChange={(v) => setLimit(v.replace(/\D/g, '').slice(0, 4))} inputMode="numeric" className="nums" />}
                 </Field>
               )}
             </div>
             <ErrorNote>{create.error?.message}</ErrorNote>
-            <Btn icon={Link2} loading={create.isPending} onClick={submit} className="self-start">Создать ссылку</Btn>
+            <Btn icon={Link2} loading={create.isPending} onClick={submit} className="self-start">{t('Создать ссылку')}</Btn>
           </motion.div>
         )}
       </AnimatePresence>
@@ -180,16 +181,16 @@ function Invites({ houseId }: { houseId: string }) {
           {q.data.map((i) => (
             <li key={i.id} className={cn('flex flex-wrap items-center gap-3 rounded-[18px] bg-surface-2 px-4 py-3', i.status !== 'ACTIVE' && 'opacity-70')}>
               <div className="min-w-0 flex-1">
-                <p className="text-[14.5px] font-semibold text-ink">{i.type === 'PUBLIC_LINK' ? 'Для чата дома' : 'Персональная'}</p>
+                <p className="text-[14.5px] font-semibold text-ink">{i.type === 'PUBLIC_LINK' ? t('Для чата дома') : t('Персональная')}</p>
                 <p className="nums text-[13px] text-ink-2">
-                  {i.use_count} {plural(i.use_count, ['активация', 'активации', 'активаций'])}{i.max_uses ? ` из ${i.max_uses}` : ''} · до {formatDate(i.expires_at)}
+                  {i.use_count} {t(plural(i.use_count, ['активация', 'активации', 'активаций']))}{i.max_uses ? t(' из {n}', { n: i.max_uses }) : ''} · {t('до {date}', { date: formatDate(i.expires_at) })}
                 </p>
               </div>
-              <Tag tone={STATUS[i.status].tone}>{STATUS[i.status].label}</Tag>
+              <Tag tone={STATUS[i.status].tone}>{t(STATUS[i.status].label)}</Tag>
               {i.status === 'ACTIVE' && (
                 <div className="flex gap-1">
-                  <Btn variant="ghost" icon={RefreshCw} loading={reissue.isPending && reissue.variables === i.id} onClick={() => reissue.mutate(i.id)}>Перевыпустить</Btn>
-                  <Btn variant="ghost" loading={revoke.isPending && revoke.variables === i.id} onClick={() => revoke.mutate(i.id)}>Отозвать</Btn>
+                  <Btn variant="ghost" icon={RefreshCw} loading={reissue.isPending && reissue.variables === i.id} onClick={() => reissue.mutate(i.id)}>{t('Перевыпустить')}</Btn>
+                  <Btn variant="ghost" loading={revoke.isPending && revoke.variables === i.id} onClick={() => revoke.mutate(i.id)}>{t('Отозвать')}</Btn>
                 </div>
               )}
             </li>
@@ -214,38 +215,38 @@ function OwnershipCard({ o, houseId }: { o: PendingOwnership; houseId: string })
       className="flex flex-col gap-3 rounded-[20px] bg-surface-2 p-4">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <p className="text-[15.5px] font-semibold text-ink">{o.full_name || 'Имя не указано'}</p>
-          <p className="nums text-[13.5px] text-ink-2">{o.phone} · {o.relation === 'OWNER' ? 'собственник' : 'наниматель'}</p>
+          <p className="text-[15.5px] font-semibold text-ink">{o.full_name || t('Имя не указано')}</p>
+          <p className="nums text-[13.5px] text-ink-2">{o.phone} · {o.relation === 'OWNER' ? t('собственник') : t('наниматель')}</p>
         </div>
-        <span className="nums font-display text-[17px] font-bold text-ink">кв. {o.unit_number}</span>
+        <span className="nums font-display text-[17px] font-bold text-ink">{t('кв. {unit}', { unit: o.unit_number })}</span>
       </div>
       <div className="flex flex-wrap gap-1.5">
-        {o.identity_verified ? <Tag icon={BadgeCheck}>Личность подтверждена ЭЦП</Tag> : <Tag tone="warn">Личность ещё не подтверждена</Tag>}
+        {o.identity_verified ? <Tag icon={BadgeCheck}>{t('Личность подтверждена ЭЦП')}</Tag> : <Tag tone="warn">{t('Личность ещё не подтверждена')}</Tag>}
         {o.note && <Tag tone="mute">{o.note}</Tag>}
       </div>
       <p className="text-[13.5px] text-ink-2">
-        {o.registry_names.length > 0 ? `В реестре по этой квартире: ${o.registry_names.join(', ')}` : 'В реестре по этой квартире никого нет'}
+        {o.registry_names.length > 0 ? t('В реестре по этой квартире: {names}', { names: o.registry_names.join(', ') }) : t('В реестре по этой квартире никого нет')}
       </p>
       <ErrorNote>{shownError(verify.error ?? reject.error)}</ErrorNote>
       <AnimatePresence mode="wait" initial={false}>
         {rejecting ? (
           <motion.div key="reject" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col gap-2">
-            <Field label="Причина" hint="Например: квартира продана">
+            <Field label={t('Причина')} hint={t('Например: квартира продана')}>
               {(id, d) => <Input id={id} describedBy={d} value={reason} onChange={setReason} autoFocus />}
             </Field>
             <div className="flex gap-2">
-              <Btn variant="danger" loading={reject.isPending} disabled={reason.trim().length < 3} onClick={() => reject.mutate()}>Отклонить</Btn>
-              <Btn variant="soft" onClick={() => setRejecting(false)}>Назад</Btn>
+              <Btn variant="danger" loading={reject.isPending} disabled={reason.trim().length < 3} onClick={() => reject.mutate()}>{t('Отклонить')}</Btn>
+              <Btn variant="soft" onClick={() => setRejecting(false)}>{t('Назад')}</Btn>
             </div>
           </motion.div>
         ) : (
           <motion.div key="actions" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-wrap gap-2">
-            <Btn icon={Check} loading={verify.isPending} disabled={!o.identity_verified} onClick={() => verify.mutate()}>Подтвердить собственность</Btn>
-            <Btn variant="soft" icon={X} onClick={() => setRejecting(true)}>Отклонить</Btn>
+            <Btn icon={Check} loading={verify.isPending} disabled={!o.identity_verified} onClick={() => verify.mutate()}>{t('Подтвердить собственность')}</Btn>
+            <Btn variant="soft" icon={X} onClick={() => setRejecting(true)}>{t('Отклонить')}</Btn>
           </motion.div>
         )}
       </AnimatePresence>
-      {!o.identity_verified && <p className="text-[12.5px] text-ink-2">Подтвердить можно после того, как жилец подпишет согласие в eGov mobile: голос без идентификации не даётся</p>}
+      {!o.identity_verified && <p className="text-[12.5px] text-ink-2">{t('Подтвердить можно после того, как жилец подпишет согласие в eGov mobile: голос без идентификации не даётся')}</p>}
     </motion.li>
   )
 }
@@ -254,10 +255,10 @@ function ManualReview({ houseId }: { houseId: string }) {
   const q = useQuery({ queryKey: ['house', houseId, 'ownerships', 'pending'], queryFn: () => api<PendingOwnership[]>(`/houses/${houseId}/ownerships/pending`) })
   return (
     <Card>
-      <CardHead icon={ShieldQuestion} title="Ждут вашего подтверждения" sub="Нет в реестре или ФИО не совпало с ЭЦП. Вы знаете своих жильцов лучше устаревшего реестра"
+      <CardHead icon={ShieldQuestion} title={t('Ждут вашего подтверждения')} sub={t('Нет в реестре или ФИО не совпало с ЭЦП. Вы знаете своих жильцов лучше устаревшего реестра')}
         aside={q.data && q.data.length > 0 ? <span className="nums grid size-8 place-items-center rounded-full bg-warning-soft font-display text-[14px] font-bold text-warning">{q.data.length}</span> : null} />
       {q.isPending && <Skeleton rows={2} />}
-      {q.data?.length === 0 && <Empty icon={BadgeCheck} title="Очередь пуста" text="Собственники из реестра подтверждаются сами, как только подпишут согласие в eGov." />}
+      {q.data?.length === 0 && <Empty icon={BadgeCheck} title={t('Очередь пуста')} text={t('Собственники из реестра подтверждаются сами, как только подпишут согласие в eGov.')} />}
       <ul className="flex flex-col gap-2">
         <AnimatePresence initial={false}>{q.data?.map((o) => <OwnershipCard key={o.id} o={o} houseId={houseId} />)}</AnimatePresence>
       </ul>
@@ -285,15 +286,15 @@ function AddAccountant({ houseId, onClose }: { houseId: string; onClose: () => v
   return (
     <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.3, ease }} className="overflow-hidden">
       <div className="mb-5 flex flex-col gap-3 rounded-[20px] bg-surface-2 p-4">
-        <p className="text-[13.5px] text-ink-2">Бухгалтер получит письмо, задаст пароль и подключит приложение-аутентификатор. Вносит транзакции, но не утверждает их</p>
+        <p className="text-[13.5px] text-ink-2">{t('Бухгалтер получит письмо, задаст пароль и подключит приложение-аутентификатор. Вносит транзакции, но не утверждает их')}</p>
         <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="ФИО" error={fields.full_name}>{(id) => <Input id={id} value={name} onChange={setName} autoFocus />}</Field>
-          <Field label="Почта" error={fields.email}>{(id) => <Input id={id} type="email" value={email} onChange={setEmail} autoComplete="off" />}</Field>
+          <Field label={t('ФИО')} error={fields.full_name}>{(id) => <Input id={id} value={name} onChange={setName} autoFocus />}</Field>
+          <Field label={t('Почта')} error={fields.email}>{(id) => <Input id={id} type="email" value={email} onChange={setEmail} autoComplete="off" />}</Field>
         </div>
         <ErrorNote>{shownError(add.error && !Object.keys(fields).length ? add.error : null)}</ErrorNote>
         <div className="flex gap-2">
-          <Btn icon={UserPlus} loading={add.isPending} onClick={() => add.mutate({ role: 'ACCOUNTANT', email, full_name: name })}>Пригласить бухгалтера</Btn>
-          <Btn variant="soft" onClick={onClose}>Отмена</Btn>
+          <Btn icon={UserPlus} loading={add.isPending} onClick={() => add.mutate({ role: 'ACCOUNTANT', email, full_name: name })}>{t('Пригласить бухгалтера')}</Btn>
+          <Btn variant="soft" onClick={onClose}>{t('Отмена')}</Btn>
         </div>
       </div>
     </motion.div>
@@ -314,22 +315,22 @@ function Members({ houseId }: { houseId: string }) {
   })
   return (
     <Card>
-      <CardHead icon={Users} title="Участники дома" sub="Все, у кого есть доступ к дому, и их помещения"
-        aside={!adding && <Btn variant="soft" icon={UserPlus} onClick={() => setAdding(true)}>Бухгалтер</Btn>} />
+      <CardHead icon={Users} title={t('Участники дома')} sub={t('Все, у кого есть доступ к дому, и их помещения')}
+        aside={!adding && <Btn variant="soft" icon={UserPlus} onClick={() => setAdding(true)}>{t('Бухгалтер')}</Btn>} />
       <AnimatePresence>{adding && <AddAccountant houseId={houseId} onClose={() => setAdding(false)} />}</AnimatePresence>
       <ErrorNote>{shownError(revoke.error)}</ErrorNote>
       {q.isPending && <Skeleton rows={3} />}
       {q.data && (
-        <Table cols={[{ label: 'Человек' }, { label: 'Роль' }, { label: 'Помещения' }, { label: 'С нами', right: true }, { label: '' }]} minW={760}>
+        <Table cols={[{ label: t('Человек') }, { label: t('Роль') }, { label: t('Помещения') }, { label: t('С нами'), right: true }, { label: '' }]} minW={760}>
           {q.data.map((m) => (
             <Row key={m.user_id}>
-              <Td><Cell title={m.full_name || 'Имя не указано'} sub={m.phone ?? undefined} /></Td>
+              <Td><Cell title={m.full_name || t('Имя не указано')} sub={m.phone ?? undefined} /></Td>
               <Td className="text-ink-2">{ROLE_LABELS[m.role] ?? m.role}</Td>
               <Td>
                 {m.units.length === 0 ? <span className="text-ink-3">—</span> : (
                   <span className="flex flex-wrap gap-1.5">
                     {m.units.map((u) => (
-                      <Tag key={u.number} tone={VERIFICATION[u.verification]?.tone ?? 'mute'}>кв. {u.number}, {VERIFICATION[u.verification]?.label}</Tag>
+                      <Tag key={u.number} tone={VERIFICATION[u.verification]?.tone ?? 'mute'}>{t('кв. {unit}', { unit: u.number })}, {t(VERIFICATION[u.verification]?.label ?? '')}</Tag>
                     ))}
                   </span>
                 )}
@@ -338,18 +339,18 @@ function Members({ houseId }: { houseId: string }) {
               <Td right>
                 {m.role !== 'CHAIRMAN' && (confirm === m.user_id ? (
                   <span className="flex justify-end gap-1">
-                    <Btn variant="danger" loading={revoke.isPending} onClick={() => revoke.mutate(m.user_id)}>Отозвать</Btn>
-                    <Btn variant="ghost" onClick={() => setConfirm(null)}>Нет</Btn>
+                    <Btn variant="danger" loading={revoke.isPending} onClick={() => revoke.mutate(m.user_id)}>{t('Отозвать')}</Btn>
+                    <Btn variant="ghost" onClick={() => setConfirm(null)}>{t('Нет')}</Btn>
                   </span>
                 ) : (
-                  <Btn variant="ghost" icon={UserMinus} onClick={() => setConfirm(m.user_id)}>Отозвать</Btn>
+                  <Btn variant="ghost" icon={UserMinus} onClick={() => setConfirm(m.user_id)}>{t('Отозвать')}</Btn>
                 ))}
               </Td>
             </Row>
           ))}
         </Table>
       )}
-      <p className="mt-3 text-[12.5px] text-ink-2">Отзыв доступа закрывает и право голоса по помещениям. История заявок и платежей остаётся</p>
+      <p className="mt-3 text-[12.5px] text-ink-2">{t('Отзыв доступа закрывает и право голоса по помещениям. История заявок и платежей остаётся')}</p>
     </Card>
   )
 }
@@ -358,7 +359,7 @@ export function Residents() {
   const { houseId = '' } = useParams()
   return (
     <>
-      <PageHead title="Жильцы" sub="Приглашения, заявки на вступление, подтверждение собственности и участники дома" />
+      <PageHead title={t('Жильцы')} sub={t('Приглашения, заявки на вступление, подтверждение собственности и участники дома')} />
       <div className="grid items-start gap-6 xl:grid-cols-2">
         <JoinRequests houseId={houseId} />
         <Invites houseId={houseId} />

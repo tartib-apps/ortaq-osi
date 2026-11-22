@@ -9,7 +9,9 @@ Product and design documentation is in [`docs/`](docs/) and [`DESIGN-BRIEF.md`](
 
 ## Status
 
-Phases 0–4 of the [roadmap](docs/15-roadmap.md) are implemented: platform admin, onboarding, requests and tasks, finances and reporting, voting. Phase 5 (AI layer) is not started. External providers — SIGEX/eGov signing, SMS, push, OCR, Kaspi — run as development stand-ins with the same interfaces as the real integrations.
+All five phases of the [roadmap](docs/15-roadmap.md) are implemented: platform admin, onboarding, requests and tasks, finances and reporting, voting, and the AI layer on Gemini (request triage and plans, tasks from voice notes, comparison of contractor quotes, a legal assistant citing the housing law, weekly summaries, receipt photo recognition). Reports, the annual report and meeting protocols download as PDF; the journal, reports and debtors export to Excel. The web workspace and the mobile app are available in Russian and Kazakh.
+
+External providers — SIGEX/eGov signing, SMS, push, Kaspi — still run as development stand-ins with the same interfaces as the real integrations.
 
 ## Repository layout
 
@@ -71,6 +73,10 @@ Then fill in the secrets in `apps/api/.env`:
 | `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD` | The first platform admin, created by the seed (password at least 12 characters) |
 | `PASSWORD_BREACH_CHECK` | `hibp` checks passwords against known breaches; `off` for offline work |
 | `SIGNATURE_PROVIDER` | `dev` — the eGov signing stand-in. Only for development |
+| `GEMINI_API_KEY` | Gemini API key for the AI layer. Without it the app runs on simple rules: voice tasks and full legal answers are unavailable, everything else works |
+| `AI_PROVIDER` | Optional: `gemini` or `rules`. Defaults to `gemini` when a key is set (tests always use `rules`) |
+| `GEMINI_FAST_MODELS`, `GEMINI_SMART_MODELS` | Optional model chains, comma-separated: if the first model is overloaded the call goes to the next |
+| `AI_HOURLY_CALLS`, `AI_MONTHLY_TOKENS` | Optional per-house AI limits (defaults: 20 calls per hour, 3 000 000 tokens per month) |
 
 Database, mail and storage defaults already match `docker-compose.yml`.
 
@@ -84,7 +90,8 @@ The mobile app reads `EXPO_PUBLIC_API_URL` (default `http://localhost:3000/v1`).
 # Apply migrations (schema, RLS policies, triggers, reference data)
 corepack pnpm --filter @ortaq/api db:deploy
 
-# First platform admin
+# First platform admin and the housing-law corpus for the legal assistant
+# (with GEMINI_API_KEY set, article embeddings are created too; re-run the seed to finish them if the quota runs out)
 corepack pnpm --filter @ortaq/api db:seed
 
 # Optional: demo house «ЖК Асыл Арман, блок 3» with chairman chairman@ortaq.local
@@ -116,7 +123,10 @@ For the mobile app on a phone, run `corepack pnpm --filter @ortaq/mobile start` 
 ```bash
 corepack pnpm --filter @ortaq/api test    # unit and integration tests against the ortaq_test database
 corepack pnpm typecheck                   # all packages
+corepack pnpm i18n:check                  # Kazakh translations: t('…') keys without a translation
 ```
+
+Interface strings go through `t('Русская строка')`; the Russian string is the key, and Kazakh translations live in `apps/web/src/shared/i18n/kk.json` and `apps/mobile/src/lib/i18n/kk.json`. A string without a translation falls back to Russian.
 
 API tests run on a real PostgreSQL with RLS, so `docker compose up` must be running.
 

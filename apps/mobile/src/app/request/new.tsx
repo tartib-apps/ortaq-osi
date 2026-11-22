@@ -11,6 +11,7 @@ import { pickPhotos, takePhoto, uploadPhoto, type Picked } from '../../lib/uploa
 import { color, font, radius, space, TOUCH } from '../../theme'
 import { Button, Card, ErrorNote, Field, H2, noWebOutline, Screen, T, Title } from '../../ui/kit'
 import { LocalPhotos } from '../../ui/photos'
+import { t } from '../../lib/i18n'
 
 type Created = { id: string; number: number; merged?: boolean; possible_duplicate: { id: string; number: number; title: string } | null }
 
@@ -57,16 +58,16 @@ export default function NewRequest() {
 
   return (
     <Screen>
-      <View style={{ alignItems: 'flex-start' }}><Button variant="soft" icon={ArrowLeft} onPress={() => router.back()}>Назад</Button></View>
-      <Title sub="Председатель получит её сразу. Срочное — сверху">Сообщить о проблеме</Title>
+      <View style={{ alignItems: 'flex-start' }}><Button variant="soft" icon={ArrowLeft} onPress={() => router.back()}>{t('Назад')}</Button></View>
+      <Title sub={t('Председатель получит её сразу. Срочное — сверху')}>{t('Сообщить о проблеме')}</Title>
 
       <Card>
-        <H2>Где проблема?</H2>
+        <H2>{t('Где проблема?')}</H2>
         <View accessibilityRole="radiogroup" style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm }}>
           {PLACES.map((p) => (
             <Pressable key={p.v} accessibilityRole="radio" accessibilityState={{ checked: place === p.v }} onPress={() => setPlace(p.v)}
               style={{ width: '31.5%', minHeight: 64, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', padding: space.sm, backgroundColor: place === p.v ? color.brand600 : color.surface2 }}>
-              <Text style={{ fontFamily: font.semibold, fontSize: 14, textAlign: 'center', color: place === p.v ? color.white : color.ink }}>{p.label}</Text>
+              <Text style={{ fontFamily: font.semibold, fontSize: 14, textAlign: 'center', color: place === p.v ? color.white : color.ink }}>{t(p.label)}</Text>
             </Pressable>
           ))}
         </View>
@@ -74,46 +75,46 @@ export default function NewRequest() {
           <View style={{ flexDirection: 'row', gap: space.md }}>
             {needsEntrance && (
               <View style={{ flex: 1 }}>
-                <Field label={place === 'ENTRANCE' ? 'Подъезд' : 'Подъезд, если знаете'} value={entrance} onChangeText={(v) => setEntrance(v.replace(/\D/g, '').slice(0, 2))} keyboardType="number-pad" error={fields.location_entrance} />
+                <Field label={place === 'ENTRANCE' ? t('Подъезд') : t('Подъезд, если знаете')} value={entrance} onChangeText={(v) => setEntrance(v.replace(/\D/g, '').slice(0, 2))} keyboardType="number-pad" error={fields.location_entrance} />
               </View>
             )}
             {place === 'ENTRANCE' && (
-              <View style={{ flex: 1 }}><Field label="Этаж" value={floor} onChangeText={(v) => setFloor(v.replace(/\D/g, '').slice(0, 3))} keyboardType="number-pad" /></View>
+              <View style={{ flex: 1 }}><Field label={t('Этаж')} value={floor} onChangeText={(v) => setFloor(v.replace(/\D/g, '').slice(0, 3))} keyboardType="number-pad" /></View>
             )}
           </View>
         )}
-        {place === 'APARTMENT' && <T size={13.5} tone="ink2">Заявка про вашу квартиру — её увидит только председатель, не соседи</T>}
+        {place === 'APARTMENT' && <T size={13.5} tone="ink2">{t('Заявка про вашу квартиру — её увидит только председатель, не соседи')}</T>}
       </Card>
 
       <Card>
-        <H2>Что случилось?</H2>
+        <H2>{t('Что случилось?')}</H2>
         <View accessibilityRole="radiogroup" style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm }}>
           {RequestCategory.map((c) => <Chip key={c} on={category === c} label={CATEGORY[c] ?? c} onPress={() => setCategory(c)} />)}
         </View>
         <View style={{ gap: 6 }}>
-          <T size={13.5} weight="semibold">Описание</T>
+          <T size={13.5} weight="semibold">{t('Описание')}</T>
           <TextInput
-            accessibilityLabel="Описание проблемы" value={description} onChangeText={setDescription} multiline maxLength={2000}
-            placeholder="Например: течёт труба под лестницей, вода на полу" placeholderTextColor={color.ink3}
+            accessibilityLabel={t('Описание проблемы')} value={description} onChangeText={setDescription} multiline maxLength={2000}
+            placeholder={t('Например: течёт труба под лестницей, вода на полу')} placeholderTextColor={color.ink3}
             style={[{ minHeight: 120, borderRadius: radius.sm, backgroundColor: color.surface2, padding: space.lg, fontFamily: font.body, fontSize: 16, color: color.ink, textAlignVertical: 'top' }, noWebOutline]}
           />
         </View>
       </Card>
 
       <Card>
-        <H2>Фото</H2>
-        <T size={14} tone="ink2">Необязательно, но фото ускоряет решение: мастер сразу возьмёт нужный инструмент</T>
+        <H2>{t('Фото')}</H2>
+        <T size={14} tone="ink2">{t('Необязательно, но фото ускоряет решение: мастер сразу возьмёт нужный инструмент')}</T>
         <LocalPhotos uris={photos.map((p) => p.uri)} onRemove={(i) => setPhotos((list) => list.filter((_, j) => j !== i))} />
         {photos.length < MAX_REQUEST_PHOTOS && (
           <View style={{ flexDirection: 'row', gap: space.sm }}>
-            <Button variant="soft" icon={Camera} style={{ flex: 1 }} onPress={() => void takePhoto().then((p) => p && setPhotos((l) => [...l, p].slice(0, MAX_REQUEST_PHOTOS))).catch(() => undefined)}>Снять</Button>
-            <Button variant="soft" icon={ImagePlus} style={{ flex: 1 }} onPress={() => void pickPhotos(MAX_REQUEST_PHOTOS - photos.length).then((p) => setPhotos((l) => [...l, ...p].slice(0, MAX_REQUEST_PHOTOS)))}>Из галереи</Button>
+            <Button variant="soft" icon={Camera} style={{ flex: 1 }} onPress={() => void takePhoto().then((p) => p && setPhotos((l) => [...l, p].slice(0, MAX_REQUEST_PHOTOS))).catch(() => undefined)}>{t('Снять')}</Button>
+            <Button variant="soft" icon={ImagePlus} style={{ flex: 1 }} onPress={() => void pickPhotos(MAX_REQUEST_PHOTOS - photos.length).then((p) => setPhotos((l) => [...l, ...p].slice(0, MAX_REQUEST_PHOTOS)))}>{t('Из галереи')}</Button>
           </View>
         )}
       </Card>
 
       <ErrorNote>{send.error && !Object.keys(fields).length ? send.error.message : null}</ErrorNote>
-      <Button icon={Send} loading={send.isPending} disabled={!ready} onPress={() => send.mutate()} style={{ minHeight: TOUCH + 4 }}>Отправить</Button>
+      <Button icon={Send} loading={send.isPending} disabled={!ready} onPress={() => send.mutate()} style={{ minHeight: TOUCH + 4 }}>{t('Отправить')}</Button>
     </Screen>
   )
 }

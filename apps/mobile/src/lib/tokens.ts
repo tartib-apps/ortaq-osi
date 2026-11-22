@@ -11,3 +11,10 @@ export const refreshStore = {
   set: (token: string) => SecureStore.setItemAsync(KEY, token, { keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY }),
   clear: () => SecureStore.deleteItemAsync(KEY),
 }
+
+/** Выбранный язык интерфейса — не секрет, но хранилище то же: другого в приложении нет */
+const LOCALE_KEY = 'ortaq.locale'
+export const localeStore = {
+  get: () => SecureStore.getItemAsync(LOCALE_KEY),
+  set: (v: string) => SecureStore.setItemAsync(LOCALE_KEY, v),
+}

@@ -7,6 +7,7 @@ import type { Priority } from '@ortaq/shared'
 import { api } from '../shared/api/client'
 import { cn, ease, formatDateTime, plural } from '../shared/lib/cn'
 import { Card, Empty, ErrorNote, PageHead, Segmented, Skeleton, Tag } from '../shared/ui/kit'
+import { t } from '../shared/i18n'
 import { FLAG_LABELS, PRIORITY_LABELS, PRIORITY_TONE, REQUEST_STATUS_LABELS } from './labels'
 
 export type RequestRow = {
@@ -21,7 +22,7 @@ type Filter = 'all' | 'urgent' | 'unassigned' | 'done'
 export function StageBar({ done, total }: { done: number; total: number }) {
   if (total === 0) return null
   return (
-    <span className="flex gap-1" aria-label={`Этапов выполнено: ${done} из ${total}`}>
+    <span className="flex gap-1" aria-label={t('Этапов выполнено: {done} из {total}', { done, total })}>
       {Array.from({ length: total }, (_, i) => <span key={i} className={cn('h-1.5 w-6 rounded-full', i < done ? 'bg-brand-500' : 'bg-surface-3')} />)}
     </span>
   )
@@ -35,7 +36,7 @@ function Row({ r, onOpen }: { r: RequestRow; onOpen: () => void }) {
           <div className="min-w-0 flex-1">
             <p className="text-[15.5px] font-semibold text-ink"><span className="nums text-ink-2">№{r.number}</span> {r.title}</p>
             <p className="mt-0.5 text-[13.5px] text-ink-2">
-              {r.location_label}{r.author && ` · ${r.author.name}${r.author.unit ? `, кв. ${r.author.unit}` : ''}`}
+              {r.location_label}{r.author && ` · ${r.author.name}${r.author.unit ? t(', кв. {unit}', { unit: r.author.unit }) : ''}`}
             </p>
           </div>
           <span className="nums shrink-0 text-[13px] text-ink-2">{formatDateTime(r.created_at)}</span>
@@ -44,11 +45,11 @@ function Row({ r, onOpen }: { r: RequestRow; onOpen: () => void }) {
           <Tag tone={PRIORITY_TONE[r.priority]}>{PRIORITY_LABELS[r.priority]}</Tag>
           <Tag tone="mute">{REQUEST_STATUS_LABELS[r.status] ?? r.status}</Tag>
           {r.flags?.map((f) => <Tag key={f} tone="warn">{FLAG_LABELS[f] ?? f}</Tag>)}
-          {r.reports > 1 && <Tag tone="warn" icon={Users}>{r.reports} {plural(r.reports, ['обращение', 'обращения', 'обращений'])}</Tag>}
+          {r.reports > 1 && <Tag tone="warn" icon={Users}>{r.reports} {t(plural(r.reports, ['обращение', 'обращения', 'обращений']))}</Tag>}
           {r.photos > 0 && <Tag tone="mute" icon={Camera}>{r.photos}</Tag>}
         </div>
         {r.ai_reason && r.status === 'TRIAGE' && (
-          <p className="flex items-start gap-1.5 text-[13px] text-ink-2"><Bot size={15} className="mt-px shrink-0" /> ИИ: {r.ai_reason}</p>
+          <p className="flex items-start gap-1.5 text-[13px] text-ink-2"><Bot size={15} className="mt-px shrink-0" /> {t('ИИ: {reason}', { reason: r.ai_reason })}</p>
         )}
         {(r.assignee || r.progress.total > 0) && (
           <div className="flex flex-wrap items-center gap-3 text-[13px] text-ink-2">
@@ -76,15 +77,15 @@ export function Requests() {
 
   return (
     <>
-      <PageHead title="Заявки" sub={waiting > 0 ? `${waiting} ${plural(waiting, ['ждёт', 'ждут', 'ждут'])} вашего решения` : 'Срочные вверху. ИИ подсказывает, решаете вы'} />
+      <PageHead title={t('Заявки')} sub={waiting > 0 ? t(plural(waiting, ['{n} ждёт вашего решения', '{n} ждут вашего решения', '{n} ждут вашего решения']), { n: waiting }) : t('Срочные вверху. ИИ подсказывает, решаете вы')} />
       <Card>
-        <Segmented id="req-filter" label="Какие заявки показать" value={filter} onChange={setFilter} options={[
-          { v: 'all', label: 'Открытые' }, { v: 'urgent', label: 'Срочные' }, { v: 'unassigned', label: 'Без исполнителя' }, { v: 'done', label: 'Выполненные' },
+        <Segmented id="req-filter" label={t('Какие заявки показать')} value={filter} onChange={setFilter} options={[
+          { v: 'all', label: t('Открытые') }, { v: 'urgent', label: t('Срочные') }, { v: 'unassigned', label: t('Без исполнителя') }, { v: 'done', label: t('Выполненные') },
         ]} />
         <div className="mt-5">
           {q.isPending && <Skeleton rows={4} />}
           <ErrorNote>{q.error?.message}</ErrorNote>
-          {q.data?.length === 0 && <Empty icon={ClipboardList} title="Заявок нет" text="Когда жилец сообщит о проблеме, она появится здесь — срочные сверху." />}
+          {q.data?.length === 0 && <Empty icon={ClipboardList} title={t('Заявок нет')} text={t('Когда жилец сообщит о проблеме, она появится здесь — срочные сверху.')} />}
           <ul className="flex flex-col gap-2">
             {q.data?.map((r) => <Row key={r.id} r={r} onOpen={() => navigate(`/h/${houseId}/requests/${r.id}`)} />)}
           </ul>

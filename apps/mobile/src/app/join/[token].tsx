@@ -7,6 +7,7 @@ import { api } from '../../lib/api'
 import { useSession } from '../../lib/session'
 import { color, font, radius, space } from '../../theme'
 import { Button, Card, CheckRow, Empty, ErrorNote, Field, IconBadge, Screen, Segmented, Skeleton, T, Title } from '../../ui/kit'
+import { t } from '../../lib/i18n'
 
 type Resolved = { valid: false } | { valid: true; house_display_name: string; target_role: 'RESIDENT' | 'WORKER' }
 type Unit = { number: string; entrance: number | null }
@@ -73,8 +74,8 @@ function InviteForm({ token }: { token: string }) {
   if (!resolved.data?.valid) {
     return (
       <Screen>
-        <Empty icon={Link2Off} title="Ссылка не работает" text="Её отозвали, у неё истёк срок или закончились активации. Попросите председателя прислать новую." />
-        <Button variant="soft" onPress={() => { setPendingInvite(null); router.replace('/join') }}>Найти дом по адресу</Button>
+        <Empty icon={Link2Off} title={t('Ссылка не работает')} text={t('Её отозвали, у неё истёк срок или закончились активации. Попросите председателя прислать новую.')} />
+        <Button variant="soft" onPress={() => { setPendingInvite(null); router.replace('/join') }}>{t('Найти дом по адресу')}</Button>
       </Screen>
     )
   }
@@ -84,51 +85,51 @@ function InviteForm({ token }: { token: string }) {
     <Screen>
       <View style={{ flexDirection: 'row', gap: space.md, alignItems: 'center' }}>
         <IconBadge icon={Building2} tone="brand" />
-        <T size={14} tone="ink2" style={{ flex: 1 }}>{worker ? 'Приглашение для персонала' : 'Приглашение в дом'}</T>
+        <T size={14} tone="ink2" style={{ flex: 1 }}>{worker ? t('Приглашение для персонала') : t('Приглашение в дом')}</T>
       </View>
-      <Title sub={worker ? 'Вас добавят в персонал дома: задачи от председателя будут приходить сюда' : 'Выберите своё помещение. Дом уже определён ссылкой'}>
+      <Title sub={worker ? t('Вас добавят в персонал дома: задачи от председателя будут приходить сюда') : t('Выберите своё помещение. Дом уже определён ссылкой')}>
         {resolved.data.house_display_name}
       </Title>
 
       {!worker && (
         <Card>
-          <Field label="Номер помещения" value={query} onChangeText={setQuery} placeholder="Например, 45" />
+          <Field label={t('Номер помещения')} value={query} onChangeText={setQuery} placeholder={t('Например, 45')} />
           {units.isPending ? <Skeleton rows={2} height={48} /> : (
-            <View style={styles.grid} accessibilityRole="radiogroup" accessibilityLabel="Помещение">
+            <View style={styles.grid} accessibilityRole="radiogroup" accessibilityLabel={t('Помещение')}>
               {shown.map((u) => {
                 const on = u.number === unit
                 return (
-                  <Pressable key={u.number} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={`Помещение ${u.number}`}
+                  <Pressable key={u.number} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={t('Помещение {n}', { n: u.number })}
                     onPress={() => setUnit(u.number)} style={[styles.unit, on && { backgroundColor: color.brand600 }]}>
                     <Text style={[styles.unitText, on && { color: color.white }]}>{u.number}</Text>
                   </Pressable>
                 )
               })}
-              {shown.length === 0 && <T tone="ink2">Такого номера в доме нет</T>}
+              {shown.length === 0 && <T tone="ink2">{t('Такого номера в доме нет')}</T>}
             </View>
           )}
           <View style={{ gap: 6 }}>
-            <T size={13.5} weight="semibold">Кем вы являетесь</T>
-            <Segmented label="Кем вы являетесь" value={relation} onChange={setRelation} options={[{ v: 'OWNER', label: 'Собственник' }, { v: 'TENANT', label: 'Наниматель' }]} />
-            {relation === 'TENANT' && <T size={13} tone="ink2">Наниматель видит объявления и подаёт заявки, но не голосует: голос принадлежит собственнику</T>}
+            <T size={13.5} weight="semibold">{t('Кем вы являетесь')}</T>
+            <Segmented label={t('Кем вы являетесь')} value={relation} onChange={setRelation} options={[{ v: 'OWNER', label: t('Собственник') }, { v: 'TENANT', label: t('Наниматель') }]} />
+            {relation === 'TENANT' && <T size={13} tone="ink2">{t('Наниматель видит объявления и подаёт заявки, но не голосует: голос принадлежит собственнику')}</T>}
           </View>
         </Card>
       )}
 
       <View>
         <CheckRow checked={terms} onChange={setTerms}>
-          <T size={14.5}>Принимаю правила сервиса Ortaq</T>
-          <T size={13} tone="ink2">Обязательно для вступления в дом</T>
+          <T size={14.5}>{t('Принимаю правила сервиса Ortaq')}</T>
+          <T size={13} tone="ink2">{t('Обязательно для вступления в дом')}</T>
         </CheckRow>
         <CheckRow checked={notifications} onChange={setNotifications}>
-          <T size={14.5}>Присылать уведомления</T>
-          <T size={13} tone="ink2">Объявления, заявки, оплата. О голосованиях сообщим в любом случае — это требование закона</T>
+          <T size={14.5}>{t('Присылать уведомления')}</T>
+          <T size={13} tone="ink2">{t('Объявления, заявки, оплата. О голосованиях сообщим в любом случае — это требование закона')}</T>
         </CheckRow>
       </View>
 
       <ErrorNote>{accept.error?.message}</ErrorNote>
       <Button loading={accept.isPending} disabled={!ready} onPress={() => accept.mutate()}>
-        {worker ? 'Присоединиться' : unit ? `Присоединиться, кв. ${unit}` : 'Выберите помещение'}
+        {worker ? t('Присоединиться') : unit ? t('Присоединиться, кв. {n}', { n: unit }) : t('Выберите помещение')}
       </Button>
     </Screen>
   )
