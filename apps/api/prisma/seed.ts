@@ -10,6 +10,8 @@ import { PrismaClient } from '@prisma/client'
 import * as argon2 from 'argon2'
 import { ARGON } from '../src/modules/auth/password.service'
 import { defaultLayout, generateUnits } from '../src/modules/admin/units.generator'
+import { loadCorpus } from '../src/modules/ai/legal-corpus'
+import { GeminiProvider } from '../src/integrations/ai/gemini.provider'
 
 process.loadEnvFile('.env')
 const db = new PrismaClient()
@@ -64,8 +66,16 @@ async function demo() {
   console.log('Демо-дом создан: ЖК Асыл Арман, блок 3. Председатель chairman@ortaq.local, пароль как у админа')
 }
 
+/** Корпус законов для юрпомощника. С ключом Gemini — сразу с эмбеддингами, без него — полнотекстовый поиск */
+async function legal() {
+  const key = process.env.GEMINI_API_KEY
+  const ai = key && process.env.AI_PROVIDER !== 'rules' ? new GeminiProvider({ apiKey: key, fastModels: [], smartModels: [] }) : null
+  await loadCorpus(db, ai ? (texts) => ai.embed(texts, 'document') : undefined, (m) => console.log(`Законодательство: ${m}`))
+}
+
 async function main() {
   await admin()
+  await legal()
   if (process.argv.includes('--demo')) await demo()
 }
 

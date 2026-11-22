@@ -12,7 +12,7 @@ import { AuditService } from '../audit/audit.service'
 import { isBoardRole, visibleRequestsWhere } from '../requests/visibility'
 import { reencodeImage, sniffImage } from './images'
 
-export type FileParent = 'REQUEST' | 'REQUEST_EVENT' | 'TASK_COMPLETION' | 'TRANSACTION' | 'CHARGE_COLLECTION' | 'RECEIPT' | 'VOTE' | 'BALLOT'
+export type FileParent = 'REQUEST' | 'REQUEST_EVENT' | 'TASK_COMPLETION' | 'TRANSACTION' | 'CHARGE_COLLECTION' | 'RECEIPT' | 'VOTE' | 'BALLOT' | 'VOICE_NOTE' | 'COMPARISON'
 
 const rejected = (message: string) => new AppError(422, ErrorCode.FILE_REJECTED, message)
 
@@ -37,6 +37,7 @@ export class FilesService {
     // Финансовые документы вносит правление; жильцу этот путь (и PDF вместе с ним) не нужен
     if (body.purpose === 'FINANCE_DOCUMENT' && !isBoardRole(ctx().role)) throw forbidden('Финансовые документы загружают председатель и бухгалтер')
     if ((body.purpose === 'VOTE_MATERIAL' || body.purpose === 'BALLOT_SCAN') && ctx().role !== 'CHAIRMAN') throw forbidden('Материалы и бумажные бюллетени загружает председатель')
+    if ((body.purpose === 'VOICE_NOTE' || body.purpose === 'PROPOSAL') && ctx().role !== 'CHAIRMAN') throw forbidden('Голосовые задачи и предложения подрядчиков загружает председатель')
     // Сначала во «входящие»: до проверки файл нигде не показывается и ни к чему не привязан
     const storageKey = `incoming/${houseId}/${randomUUID()}`
     const file = await this.db.run((tx) =>
@@ -60,6 +61,7 @@ export class FilesService {
 
     const original = await this.storage.read(file.storageKey, MAX_UPLOAD_BYTES)
     if (!original) throw unprocessable(ErrorCode.FILE_NOT_UPLOADED, 'Файл не загружен или больше 15 МБ')
+    if (file.purpose === 'VOICE_NOTE') return this.finalizeAudio(file, original)
     if (file.purpose !== 'REQUEST_PHOTO' && file.purpose !== 'TASK_PHOTO' && original.toString('latin1', 0, 5) === '%PDF-') return this.finalizePdf(file, original)
     if (!sniffImage(original)) return this.reject(file, 'Это не фотография: поддерживаются JPEG, PNG и WebP')
 
@@ -154,6 +156,11 @@ export class FilesService {
         const snap = await tx.voteRegistrySnapshot.findFirst({ where: { voteId: b.voteId }, select: { entries: true } })
         return ((snap?.entries ?? []) as { unit_id: string; voters: string[] }[]).some((e) => e.unit_id === b.unitId && e.voters.includes(userId))
       }
+      // Голосовое председателя и КП подрядчиков — рабочие материалы правления
+      case 'VOICE_NOTE':
+        return role === 'CHAIRMAN'
+      case 'COMPARISON':
+        return isBoardRole(role)
       default:
         return false
     }
@@ -180,11 +187,43 @@ export class FilesService {
     return view(ready)
   }
 
+  /**
+   * Аудио не перекодируется и никому, кроме председателя и модели, не отдаётся. Проверяем только,
+   * что это действительно запись нужного формата: контейнер по сигнатуре, а не по заявлению клиента
+   */
+  private async finalizeAudio(file: FileRow, body: Buffer): Promise<FileView> {
+    const mime = sniffAudio(body)
+    if (!mime) return this.reject(file, 'Это не аудиозапись: поддерживаются WebM, OGG, M4A, MP3 и WAV')
+    const key = `files/${file.houseId}/${file.id}.audio`
+    await this.storage.write(key, body, mime)
+    await this.storage.remove(file.storageKey)
+    const ready = await this.db.run(async (tx) => {
+      const f = await tx.file.update({
+        where: { id: file.id },
+        data: { storageKey: key, mimeType: mime, sizeBytes: body.length, contentHash: this.crypto.sha256Bytes(body), status: 'READY', scanStatus: 'CLEAN', finalizedAt: new Date() },
+      })
+      await this.audit.append(tx, { action: 'file.upload', entityType: 'File', entityId: f.id, after: { purpose: f.purpose, size: f.sizeBytes, mime } })
+      return f
+    })
+    return view(ready)
+  }
+
   private async reject(file: FileRow, reason: string): Promise<never> {
     await this.storage.remove(file.storageKey)
     await this.db.run((tx) => tx.file.update({ where: { id: file.id }, data: { status: 'REJECTED' } }))
     throw rejected(reason)
   }
+}
+
+/** Контейнер аудио по первым байтам */
+export function sniffAudio(b: Buffer): string | null {
+  if (b.length < 12) return null
+  if (b.readUInt32BE(0) === 0x1a45dfa3) return 'audio/webm'
+  if (b.toString('latin1', 0, 4) === 'OggS') return 'audio/ogg'
+  if (b.toString('latin1', 4, 8) === 'ftyp') return 'audio/mp4'
+  if (b.toString('latin1', 0, 4) === 'RIFF' && b.toString('latin1', 8, 12) === 'WAVE') return 'audio/wav'
+  if (b.toString('latin1', 0, 3) === 'ID3' || (b[0] === 0xff && (b[1]! & 0xe0) === 0xe0)) return 'audio/mpeg'
+  return null
 }
 
 function safeName(name: string): string {

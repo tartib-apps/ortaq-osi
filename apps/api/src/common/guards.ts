@@ -28,6 +28,8 @@ const LIMITS: Record<RateClass, { limit: number; windowMs: number }> = {
   read: { limit: 300, windowMs: 60_000 },
   // Загрузка файлов — самое дорогое для хранилища: 30 в час на пользователя (docs/03 §1)
   upload: { limit: 30, windowMs: 3600_000 },
+  // Вызовы модели на пользователя; дом дополнительно ограничен квотой в AiService (docs/11 §4)
+  ai: { limit: 10, windowMs: 60_000 },
 }
 
 /**

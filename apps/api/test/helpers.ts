@@ -16,6 +16,7 @@ import { MemoryStorageProvider } from '../src/integrations/storage/memory-storag
 import { STORAGE_PROVIDER } from '../src/integrations/storage/storage.provider'
 import { TotpService } from '../src/modules/auth/totp.service'
 import { generateUnits } from '../src/modules/admin/units.generator'
+import { AI_PROVIDER, type AiProvider } from '../src/integrations/ai/ai.provider'
 
 export const PASSWORD = 'correct horse battery staple'
 
@@ -30,8 +31,11 @@ export type TestApp = {
   storage: MemoryStorageProvider
 }
 
-export async function createApp(): Promise<TestApp> {
-  const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile()
+/** ai — подмена модели: тесты функций, которым нужна «настоящая» модель (речь, ответы по статьям) */
+export async function createApp(opts: { ai?: AiProvider } = {}): Promise<TestApp> {
+  const builder = Test.createTestingModule({ imports: [AppModule] })
+  if (opts.ai) builder.overrideProvider(AI_PROVIDER).useValue(opts.ai)
+  const moduleRef = await builder.compile()
   const app = moduleRef.createNestApplication<NestExpressApplication>({ logger: process.env.TEST_LOG ? ['error', 'warn'] : false })
   configure(app)
   await app.init()
@@ -45,7 +49,7 @@ export async function resetDb() {
   await owner.$executeRawUnsafe(
     'TRUNCATE audit_log, sessions, auth_tokens, otp_codes, consents, signatures, verifications, owner_registry_entries, registry_imports, ' +
       'announcement_reads, announcement_targets, announcements, staff_members, contractors, device_tokens, notifications, notification_preferences, ' +
-      'protocols, ballot_answers, ballots, ballot_signings, vote_notices, vote_registry_snapshots, vote_options, vote_questions, votes, reports, payments, receipts, charges, charge_collections, charge_runs, tariffs, transaction_documents, transactions, finance_accounts, ai_jobs, task_completions, tasks, recurring_task_templates, request_followers, request_events, request_stages, requests, files, ' +
+      'weekly_summaries, legal_questions, commercial_proposals, proposal_comparisons, voice_notes, protocols, ballot_answers, ballots, ballot_signings, vote_notices, vote_registry_snapshots, vote_options, vote_questions, votes, reports, payments, receipts, charges, charge_collections, charge_runs, tariffs, transaction_documents, transactions, finance_accounts, ai_jobs, task_completions, tasks, recurring_task_templates, request_followers, request_events, request_stages, requests, files, ' +
       'join_requests, invites, unit_ownerships, house_memberships, units, houses, organizations, users CASCADE',
   )
 }

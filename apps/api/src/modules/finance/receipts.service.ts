@@ -5,6 +5,7 @@ import { asSystem, ctx } from '../../common/context'
 import { notFound, unprocessable } from '../../common/errors'
 import { PrismaService, type Tx } from '../../infra/prisma.service'
 import { OCR_PROVIDER, type OcrProvider } from '../../integrations/ocr/ocr.provider'
+import { AiService } from '../../integrations/ai/ai.service'
 import { STORAGE_PROVIDER, type StorageProvider } from '../../integrations/storage/storage.provider'
 import { AuditService } from '../audit/audit.service'
 import { dHash, hamming } from '../files/images'
@@ -30,6 +31,7 @@ export class ReceiptsService {
     private readonly audit: AuditService,
     @Inject(STORAGE_PROVIDER) private readonly storage: StorageProvider,
     @Inject(OCR_PROVIDER) private readonly ocr: OcrProvider,
+    private readonly ai: AiService,
   ) {}
 
   /** Файл, распознавание и отпечаток — до транзакции: чтение хранилища и модель не держат блокировки */
@@ -40,7 +42,10 @@ export class ReceiptsService {
     const body = await this.storage.read(file.storageKey, MAX_UPLOAD_BYTES)
     if (!body) throw unprocessable(ErrorCode.FILE_NOT_UPLOADED, 'Файл чека не найден в хранилище')
     const phash = file.mimeType.startsWith('image/') ? await dHash(body).catch(() => null) : null
-    const ocr = await this.ocr.read(body, file.mimeType).catch(() => null)
+    // Текстовый слой PDF читаем сами; фото — мультимодальной моделью без ФИО плательщика (docs/11 §3.2)
+    const layer = await this.ocr.read(body, file.mimeType).catch(() => null)
+    const photo = !layer && file.mimeType.startsWith('image/') ? await this.ai.receipt(ctx().houseId ?? null, file.id, body, file.mimeType) : null
+    const ocr = layer ?? (photo ? { text: photo } : null)
     const parsed = ocr ? parseReceipt(ocr.text) : null
     return { file, phash, text: ocr?.text ?? null, fields: parsed?.fields ?? null, confidence: parsed?.confidence ?? 0 }
   }

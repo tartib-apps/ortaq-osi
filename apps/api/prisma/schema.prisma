@@ -156,6 +156,10 @@ model House {
   payments      Payment[]
   reports       Report[]
   votes         Vote[]
+  voiceNotes    VoiceNote[]
+  comparisons   ProposalComparison[]
+  legalQuestions LegalQuestion[]
+  summaries     WeeklySummary[]
 
   /// Счётчик номеров протоколов собраний: «протокол №5»
   protocolSeq Int @default(0) @map("protocol_seq")
@@ -686,6 +690,8 @@ enum FilePurpose {
   PAYMENT_RECEIPT
   VOTE_MATERIAL
   BALLOT_SCAN
+  VOICE_NOTE
+  PROPOSAL
 }
 
 enum FileStatus {
@@ -775,11 +781,18 @@ enum TaskSource {
 enum AiJobType {
   REQUEST_TRIAGE
   REQUEST_SUGGEST
+  RECEIPT_OCR
+  VOICE_EXTRACT
+  PROPOSAL_COMPARE
+  LEGAL_QA
+  WEEKLY_SUMMARY
 }
 
 enum AiJobStatus {
   DONE
   FAILED
+  /// Не отправлен: исчерпан лимит дома
+  REJECTED
 }
 
 enum HumanDecision {
@@ -935,6 +948,8 @@ model Task {
   requiresPhoto       Boolean                @default(false) @map("requires_photo")
   status              TaskStatus             @default(ASSIGNED)
   source              TaskSource
+  /// Задача извлечена из голосового председателя и подтверждена им
+  voiceNoteId         String?                @map("voice_note_id") @db.Uuid
   createdBy           String?                @map("created_by") @db.Uuid
   startedAt           DateTime?              @map("started_at") @db.Timestamptz
   closedAt            DateTime?              @map("closed_at") @db.Timestamptz
@@ -1006,6 +1021,8 @@ model AiJob {
   status        AiJobStatus
   latencyMs     Int?           @map("latency_ms")
   error         String?
+  tokensIn      Int?           @map("tokens_in")
+  tokensOut     Int?           @map("tokens_out")
   humanDecision HumanDecision? @map("human_decision")
   createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz
 
@@ -1686,4 +1703,151 @@ model Protocol {
 
   @@unique([houseId, number])
   @@map("protocols")
+}
+
+// ───────── Фаза 5: ИИ-надстройка (docs/11) ─────────
+
+enum VoiceNoteStatus {
+  PROCESSING
+  EXTRACTED
+  FAILED
+  REVIEWED
+}
+
+/// Голосовое председателя: расшифровка и кандидаты в задачи. Задачи создаёт только председатель
+model VoiceNote {
+  id             String          @id @default(uuid(7)) @db.Uuid
+  houseId        String          @map("house_id") @db.Uuid
+  house          House           @relation(fields: [houseId], references: [id])
+  authorId       String          @map("author_id") @db.Uuid
+  audioFileId    String          @map("audio_file_id") @db.Uuid
+  durationSec    Int             @map("duration_sec")
+  transcript     String?
+  /// Кандидаты в задачи от модели: [{title, specialization, priority, location, mentioned_assignee, suggested_assignee_id, due_hint, context}]
+  extractedTasks Json            @default("[]") @map("extracted_tasks")
+  status         VoiceNoteStatus @default(PROCESSING)
+  error          String?
+  aiJobId        String?         @map("ai_job_id") @db.Uuid
+  createdTaskIds String[]        @default([]) @map("created_task_ids") @db.Uuid
+  reviewedAt     DateTime?       @map("reviewed_at") @db.Timestamptz
+  createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([houseId, createdAt])
+  @@map("voice_notes")
+}
+
+enum ComparisonStatus {
+  PROCESSING
+  DONE
+  FAILED
+  DECIDED
+}
+
+/// Сравнение коммерческих предложений. Рекомендация модели — подсказка; выбирает председатель
+model ProposalComparison {
+  id                 String               @id @default(uuid(7)) @db.Uuid
+  houseId            String               @map("house_id") @db.Uuid
+  house              House                @relation(fields: [houseId], references: [id])
+  title              String
+  /// Что закупаем: подсказка модели, что сравнивать
+  subject            String?
+  status             ComparisonStatus     @default(PROCESSING)
+  /// Матрица, рекомендация, риски и предупреждения
+  analysis           Json?
+  recommendedIndex   Int?                 @map("recommended_index")
+  decidedProposalId  String?              @map("decided_proposal_id") @db.Uuid
+  decidedBy          String?              @map("decided_by") @db.Uuid
+  decidedAt          DateTime?            @map("decided_at") @db.Timestamptz
+  decisionNote       String?              @map("decision_note")
+  voteId             String?              @map("vote_id") @db.Uuid
+  error              String?
+  aiJobId            String?              @map("ai_job_id") @db.Uuid
+  createdBy          String               @map("created_by") @db.Uuid
+  createdAt          DateTime             @default(now()) @map("created_at") @db.Timestamptz
+  proposals          CommercialProposal[]
+
+  @@index([houseId, createdAt])
+  @@map("proposal_comparisons")
+}
+
+model CommercialProposal {
+  id             String             @id @default(uuid(7)) @db.Uuid
+  houseId        String             @map("house_id") @db.Uuid
+  comparisonId   String             @map("comparison_id") @db.Uuid
+  comparison     ProposalComparison @relation(fields: [comparisonId], references: [id])
+  order          Int
+  fileId         String             @map("file_id") @db.Uuid
+  /// Подрядчик — юрлицо, его название не персональные данные (docs/11 §2)
+  contractorName String?            @map("contractor_name")
+  /// Извлечённые условия: цена, срок, гарантия, предоплата, что включено и нет
+  parsed         Json?
+
+  @@unique([comparisonId, order])
+  @@map("commercial_proposals")
+}
+
+/// Корпус законодательства — общий для всех домов, только чтение для приложения
+model LegalDocument {
+  id          String       @id @default(uuid(7)) @db.Uuid
+  code        String       @unique
+  title       String
+  shortTitle  String       @map("short_title")
+  type        String
+  sourceUrl   String       @map("source_url")
+  versionDate DateTime     @map("version_date") @db.Date
+  language    String
+  isCurrent   Boolean      @default(true) @map("is_current")
+  chunks      LegalChunk[]
+
+  @@map("legal_documents")
+}
+
+/// Одна статья — один фрагмент: ссылка в ответе должна указывать на статью, а не на абзац
+model LegalChunk {
+  id         String                       @id @default(uuid(7)) @db.Uuid
+  documentId String                       @map("document_id") @db.Uuid
+  document   LegalDocument                @relation(fields: [documentId], references: [id])
+  order      Int
+  article    String
+  title      String
+  content    String
+  embedding  Unsupported("vector(768)")?
+  /// Генерируемая колонка полнотекстового поиска (миграция phase5_ai)
+  tsv        Unsupported("tsvector")?
+
+  @@unique([documentId, article])
+  @@map("legal_chunks")
+}
+
+/// История вопросов юрпомощнику: председатель возвращается к ответу перед собранием
+model LegalQuestion {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  houseId   String   @map("house_id") @db.Uuid
+  house     House    @relation(fields: [houseId], references: [id])
+  askedBy   String   @map("asked_by") @db.Uuid
+  question  String
+  answer    Json
+  aiJobId   String?  @map("ai_job_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([houseId, createdAt])
+  @@map("legal_questions")
+}
+
+/// Сводка недели из агрегатов дома: без фамилий и номеров квартир
+model WeeklySummary {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  houseId     String   @map("house_id") @db.Uuid
+  house       House    @relation(fields: [houseId], references: [id])
+  weekStart   DateTime @map("week_start") @db.Date
+  weekEnd     DateTime @map("week_end") @db.Date
+  /// {summary_text, highlights, needs_attention}
+  content     Json
+  /// Цифры, из которых собрана сводка: проверяемость текста
+  facts       Json
+  aiJobId     String?  @map("ai_job_id") @db.Uuid
+  publishedAt DateTime @default(now()) @map("published_at") @db.Timestamptz
+
+  @@unique([houseId, weekStart])
+  @@map("weekly_summaries")
 }

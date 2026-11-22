@@ -120,7 +120,8 @@ export class TasksService {
     })
   }
 
-  async create(input: CreateTaskBody) {
+  /** origin — задача из подтверждённого голосового председателя (docs/11 §3.4) */
+  async create(input: CreateTaskBody, origin?: { voiceNoteId: string }) {
     const b = createTaskBody.parse(input)
     const houseId = ctx().houseId ?? ''
     const task = await this.db.run(async (tx) => {
@@ -135,7 +136,7 @@ export class TasksService {
           houseId, title: b.title, description: b.description ?? null, requestId: request?.id ?? null, stageId: b.stage_id ?? null,
           assigneeId: b.assignee_id ?? null, contractorId: b.contractor_id ?? null, specialization: b.specialization ?? null,
           priority: b.priority, dueAt: b.due_at ? new Date(b.due_at) : null, requiresPhoto: b.requires_photo,
-          source: request ? 'FROM_REQUEST' : 'MANUAL', createdBy: ctx().userId ?? null,
+          source: request ? 'FROM_REQUEST' : origin ? 'FROM_VOICE' : 'MANUAL', voiceNoteId: origin?.voiceNoteId ?? null, createdBy: ctx().userId ?? null,
         },
         include: taskInclude,
       })

@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common'
 import { APP_GUARD } from '@nestjs/core'
 import { JwtModule } from '@nestjs/jwt'
-import { env, storageProvider } from './config/env'
+import { aiProvider, env, storageProvider } from './config/env'
 import { AdminGuard, AuthGuard, HouseGuard, RateLimitGuard, RateLimiter, StepUpGuard } from './common/guards'
 import { CryptoService } from './infra/crypto.service'
 import { MailerService } from './infra/mailer.service'
@@ -52,6 +52,8 @@ import { DevStorageBootstrap } from './integrations/storage/dev-storage.bootstra
 import { AI_PROVIDER } from './integrations/ai/ai.provider'
 import { AiService } from './integrations/ai/ai.service'
 import { RulesAiProvider } from './integrations/ai/rules-ai.provider'
+import { GeminiProvider } from './integrations/ai/gemini.provider'
+import type { AiProvider } from './integrations/ai/ai.provider'
 import { RequestsController } from './modules/requests/requests.controller'
 import { RequestsService } from './modules/requests/requests.service'
 import { RequestActionsService } from './modules/requests/request-actions.service'
@@ -84,6 +86,11 @@ import { ProtocolsService } from './modules/votes/protocols.service'
 import { VotesController } from './modules/votes/votes.controller'
 import { VotesScheduler } from './modules/votes/votes.scheduler'
 import { VotesService } from './modules/votes/votes.service'
+import { AiController } from './modules/ai/ai.controller'
+import { LegalService } from './modules/ai/legal.service'
+import { ProposalsService } from './modules/ai/proposals.service'
+import { SummariesScheduler, SummariesService } from './modules/ai/summaries.service'
+import { VoiceNotesService } from './modules/ai/voice-notes.service'
 
 /** Провайдер подписи по конфигурации. Адаптер SIGEX появится вместе с договором и тестовым контуром */
 function signatureProvider(): SignatureProvider {
@@ -91,6 +98,14 @@ function signatureProvider(): SignatureProvider {
   throw new Error('SIGNATURE_PROVIDER=sigex: адаптер SIGEX ещё не подключён')
 }
 const devStandIns = env().SIGNATURE_PROVIDER === 'dev'
+
+/** Gemini, если есть ключ; без него — правила с тем же контрактом: система работает и без модели (docs/11 §4) */
+function aiProviderFactory(): AiProvider {
+  const e = env()
+  if (aiProvider(e) === 'rules') return new RulesAiProvider()
+  const models = (v: string) => v.split(',').map((m) => m.trim()).filter(Boolean)
+  return new GeminiProvider({ apiKey: e.GEMINI_API_KEY ?? '', fastModels: models(e.GEMINI_FAST_MODELS), smartModels: models(e.GEMINI_SMART_MODELS) })
+}
 
 function storageProviderFactory(): StorageProvider {
   return storageProvider(env()) === 'memory' ? new MemoryStorageProvider() : new S3StorageProvider(env())
@@ -108,7 +123,7 @@ function storageProviderFactory(): StorageProvider {
     AuthController, AdminController, HousesController, MembershipsController, VerificationController, OwnershipsController,
     UnitsController, RegistryController, MembersController, StaffController,
     AnnouncementsController, NotificationsController, FilesController, RequestsController, TasksController, RecurringController,
-    BudgetCategoriesController, FinanceController, ChargesController, PaymentsController, OverviewController, ReportsController, VotesController,
+    BudgetCategoriesController, FinanceController, ChargesController, PaymentsController, OverviewController, ReportsController, VotesController, AiController,
     ...(devStandIns ? [DevEgovController] : []),
   ],
   providers: [
@@ -120,8 +135,8 @@ function storageProviderFactory(): StorageProvider {
     FilesService, DevStorageBootstrap, AiService, RequestsService, RequestActionsService, StagesService, TasksService, RecurringService, RecurringScheduler,
     CategoriesService, AccountsService, TransactionsService, ChargesService, ChargesScheduler, ReceiptsService, PaymentsService, OverviewService, DebtorsService, ReportsService, ReportsScheduler,
     VotesService, BallotsService, ProtocolsService, VotesScheduler,
-    // Модель подключается здесь; пока договора с Gemini нет — правила с тем же контрактом
-    { provide: AI_PROVIDER, useClass: RulesAiProvider },
+    VoiceNotesService, ProposalsService, LegalService, SummariesService, SummariesScheduler,
+    { provide: AI_PROVIDER, useFactory: aiProviderFactory },
     { provide: STORAGE_PROVIDER, useFactory: storageProviderFactory },
     // Антивирус для PDF. Эвристика — только в разработке и тестах; в продакшене до адаптера ClamAV PDF не принимается
     // Распознавание чеков: пока модели нет — текстовый слой PDF; фото читает человек

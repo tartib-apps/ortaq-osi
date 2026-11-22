@@ -7,22 +7,30 @@ const trimmed = (min: number, max: number) => z.string().trim().min(min).max(max
 
 /* ───────── файлы ───────── */
 
-export const FilePurpose = ['REQUEST_PHOTO', 'TASK_PHOTO', 'FINANCE_DOCUMENT', 'PAYMENT_RECEIPT', 'VOTE_MATERIAL', 'BALLOT_SCAN'] as const
+export const FilePurpose = ['REQUEST_PHOTO', 'TASK_PHOTO', 'FINANCE_DOCUMENT', 'PAYMENT_RECEIPT', 'VOTE_MATERIAL', 'BALLOT_SCAN', 'VOICE_NOTE', 'PROPOSAL'] as const
 export type FilePurpose = (typeof FilePurpose)[number]
 
 /** Фото с телефона. HEIC клиент конвертирует в JPEG при выборе: сервер его не декодирует.
  *  PDF — для документов: акты, платёжки, чеки, материалы и сканы бюллетеней чаще приходят файлом, а не снимком */
-export const UPLOAD_MIME = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'] as const
-export const MAX_UPLOAD_BYTES = 15 * 1024 * 1024
+export const UPLOAD_MIME = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf', 'audio/webm', 'audio/ogg', 'audio/mp4', 'audio/mpeg', 'audio/wav'] as const
+/** Коммерческие предложения подрядчиков бывают тяжелее фото: до 20 МБ (docs/11 §4) */
+export const MAX_UPLOAD_BYTES = 20 * 1024 * 1024
+const MAX_PHOTO_BYTES = 15 * 1024 * 1024
+const isAudio = (mime: string) => mime.startsWith('audio/')
 export const MAX_REQUEST_PHOTOS = 5
 export const MAX_TASK_PHOTOS = 10
 
 export const uploadUrlBody = z.object({
   purpose: z.enum(FilePurpose),
   mime_type: z.enum(UPLOAD_MIME),
-  size_bytes: z.number().int().positive().max(MAX_UPLOAD_BYTES, 'Файл больше 15 МБ'),
+  size_bytes: z.number().int().positive().max(MAX_UPLOAD_BYTES, 'Файл больше 20 МБ'),
   name: trimmed(1, 200),
-}).refine((b) => b.mime_type !== 'application/pdf' || b.purpose !== 'REQUEST_PHOTO' && b.purpose !== 'TASK_PHOTO', { path: ['mime_type'], message: 'PDF принимается только для документов, чеков и материалов голосования' })
+})
+  .refine((b) => b.mime_type !== 'application/pdf' || b.purpose !== 'REQUEST_PHOTO' && b.purpose !== 'TASK_PHOTO', { path: ['mime_type'], message: 'PDF принимается только для документов, чеков и материалов голосования' })
+  .refine((b) => isAudio(b.mime_type) === (b.purpose === 'VOICE_NOTE'), { path: ['mime_type'], message: 'Аудио принимается только как голосовое для задач' })
+  // Текст КП обезличивается до отправки в модель — значит, нужен PDF с текстовым слоем, а не фото
+  .refine((b) => b.purpose !== 'PROPOSAL' || b.mime_type === 'application/pdf', { path: ['mime_type'], message: 'Коммерческое предложение загружается в PDF' })
+  .refine((b) => b.purpose === 'PROPOSAL' || b.size_bytes <= MAX_PHOTO_BYTES, { path: ['size_bytes'], message: 'Файл больше 15 МБ' })
 export type UploadUrlBody = z.infer<typeof uploadUrlBody>
 
 export type UploadUrlResponse = { file_id: string; upload_url: string; method: 'PUT'; headers: Record<string, string>; expires_at: string }

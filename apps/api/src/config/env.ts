@@ -29,16 +29,32 @@ const schema = z.object({
   S3_BUCKET: z.string().default('ortaq'),
   S3_ACCESS_KEY: z.string().optional(),
   S3_SECRET_KEY: z.string().optional(),
+  /** gemini — настоящая модель; rules — правила без внешних вызовов. По умолчанию gemini, если есть ключ (кроме тестов) */
+  AI_PROVIDER: z.enum(['gemini', 'rules']).optional(),
+  GEMINI_API_KEY: z.string().min(20).optional(),
+  /** Цепочки моделей через запятую: при перегрузке первой вызов идёт во вторую */
+  GEMINI_FAST_MODELS: z.string().default('gemini-3.5-flash-lite,gemini-3.1-flash-lite,gemini-3.5-flash'),
+  GEMINI_SMART_MODELS: z.string().default('gemini-3.5-flash,gemini-3.5-flash-lite,gemini-3.1-flash-lite'),
+  /** Лимиты дома (docs/11 §4): запросов в час и токенов в месяц */
+  AI_HOURLY_CALLS: z.coerce.number().int().positive().default(20),
+  AI_MONTHLY_TOKENS: z.coerce.number().int().positive().default(3_000_000),
 }).refine((e) => !(e.NODE_ENV === 'production' && e.SIGNATURE_PROVIDER === 'dev'), {
   path: ['SIGNATURE_PROVIDER'],
   message: 'заглушка подписи запрещена в production',
 }).refine((e) => !(e.NODE_ENV === 'production' && e.STORAGE_PROVIDER === 'memory'), {
   path: ['STORAGE_PROVIDER'],
   message: 'хранилище в памяти запрещено в production',
+}).refine((e) => aiProvider(e) !== 'gemini' || !!e.GEMINI_API_KEY, {
+  path: ['GEMINI_API_KEY'],
+  message: 'для AI_PROVIDER=gemini нужен GEMINI_API_KEY',
 }).refine((e) => storageProvider(e) !== 's3' || (e.S3_ENDPOINT && e.S3_ACCESS_KEY && e.S3_SECRET_KEY), {
   path: ['S3_ENDPOINT'],
   message: 'для S3 нужны S3_ENDPOINT, S3_ACCESS_KEY и S3_SECRET_KEY',
 })
+
+export function aiProvider(e: { NODE_ENV: string; AI_PROVIDER?: 'gemini' | 'rules'; GEMINI_API_KEY?: string }): 'gemini' | 'rules' {
+  return e.AI_PROVIDER ?? (e.NODE_ENV !== 'test' && e.GEMINI_API_KEY ? 'gemini' : 'rules')
+}
 
 /** По умолчанию тесты работают с хранилищем в памяти, всё остальное — с S3 */
 export function storageProvider(e: { NODE_ENV: string; STORAGE_PROVIDER?: 's3' | 'memory' }): 's3' | 'memory' {
